@@ -32,7 +32,7 @@
     .item .info-icon { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 1.2em; margin-right: 5px; }
     .item .like-btn { background: none; border: none; color: #aaa; cursor: pointer; font-size: 1.2em; margin-right: 5px; transition: transform .05s ease; }
     .item .like-btn:active { transform: scale(0.96); }
-    .item .like-btn.liked { color: #f6e07a; } /* 클릭 시 색상 */
+    .item .like-btn.liked { color: #f6e07a; } /* 내가 누르면 색상 */
     .like-count { font-size: 0.9em; color: #a0aec0; margin-left: -5px; margin-right: 5px;}
     .uploader-btn { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 0.9em; margin-right: 5px; padding: 0; }
     .video-player { aspect-ratio: 16 / 9; width: 100%; max-width: 800px; margin: 8px auto; border-radius: 8px; overflow: hidden; position: relative; }
@@ -169,12 +169,11 @@
 </div>
 
 <script>
-  // Canvas 제공 값(현 파일의 설정 유지)
+  // 고정 설정
   const __firebase_config = '{"apiKey":"AIzaSyDz6xGJNKXinG5rREjdrPz7toIYGZXzilU","authDomain":"sarangbangmusicplaylist.firebaseapp.com","projectId":"sarangbangmusicplaylist","storageBucket":"sarangbangmusicplaylist.appspot.com","messagingSenderId":"193412502606","appId":"1:193412502606:web:0f7f9ddbef1ee6711d1ff","measurementId":"G-L14GH3BHYD"}';
   const __app_id = "default-app-id";
   const __initial_auth_token = "";
   const firebaseConfig = JSON.parse(__firebase_config);
-
   const YOUTUBE_API_KEY = "AIzaSyB2GymrywkBYx4Mbt_xHNiYEV44MbfKY2w";
 
   // DOM
@@ -235,7 +234,7 @@
     isPlayerVisible: true,
     playbackTitle: null,
     playbackArtist: null,
-    // 새로 추가
+    // 추가
     localLikes: {},    // {videoId:true}
     likeSortMode: 0,   // 0=최신순, 1=따봉많은순(노랑), 2=내따봉우선(초록)
   };
@@ -251,15 +250,12 @@
   tag.src = "https://www.youtube.com/iframe_api";
   const firstScriptTag = document.getElementsByTagName('script')[0];
   firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
   window.onYouTubeIframeAPIReady = function() {
     isYoutubeApiReady = true;
     player = new YT.Player('player', {
-      height: '100%',
-      width: '100%',
-      videoId: '',
-      playerVars: { 'autoplay': 1, 'controls': 1 },
-      events: { 'onStateChange': onPlayerStateChange }
+      height: '100%', width: '100%', videoId: '',
+      playerVars: { autoplay: 1, controls: 1 },
+      events: { onStateChange: onPlayerStateChange }
     });
   };
 
@@ -528,8 +524,9 @@
       const likeBtn = document.createElement('button');
 
       const likeCount = globalState.songLikes[item.videoId]?.likeCount || 0;
-      const hasLocalLiked = !!globalState.localLikes[item.videoId]; // 로컬 기준으로 색상 표시
+      const hasLocalLiked = !!globalState.localLikes[item.videoId]; // 로컬 기준 색상
       likeBtn.className = `like-btn${hasLocalLiked ? ' liked' : ''}`;
+      likeBtn.setAttribute('aria-pressed', hasLocalLiked ? 'true' : 'false');
       likeBtn.innerHTML = '👍';
       likeBtn.addEventListener('click', (e) => { e.stopPropagation(); handleLike(item.videoId); });
 
@@ -605,7 +602,9 @@
     if (wasLocal) delete globalState.localLikes[videoId];
     else globalState.localLikes[videoId] = true;
     saveLocalLikes(globalState.localLikes);
-    renderList(); // UI 즉시 갱신
+
+    // UI 즉시 갱신
+    renderList();
 
     // 2) 서버 카운트 갱신
     const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('song_likes').doc(videoId);
@@ -620,7 +619,6 @@
         else { likeCount++; likedBy[userId] = true; showMessage("좋아요를 눌렀습니다!", 'ok'); }
         transaction.set(docRef, { likeCount, likedBy, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
       });
-      // 리스너가 count를 갱신해 줄 것이므로 여기선 추가 처리 없음
     } catch (e) {
       console.error(e);
       showMessage("좋아요 처리에 실패했습니다. " + e.message, 'error');
@@ -916,7 +914,6 @@
     // 따봉 정렬 3단계
     likeSortBtn.addEventListener('click', () => {
       globalState.likeSortMode = (globalState.likeSortMode + 1) % 3; // 0->1->2->0
-
       likeSortBtn.classList.remove('most-liked','user-liked');
       if (globalState.likeSortMode === 1) {
         likeSortBtn.classList.add('most-liked');
@@ -927,11 +924,8 @@
       } else {
         showMessage("최신순으로 정렬합니다.", 'info');
       }
-
-      // 셔플 해제
       globalState.isShuffleMode = false;
       shuffleBtn.classList.remove('active');
-
       renderList();
       updatePlayingSong(globalState.videoId);
     });
@@ -962,34 +956,19 @@
 
       db.collection('artifacts').doc(appId).collection('public')
         .doc('data').collection('playback_state').doc('main_state')
-        .set({
-          videoId,
-          timestamp: 0,
-          title,
-          artist,
-          lastUpdatedBy: userId,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
+        .set({ videoId, timestamp: 0, title, artist, lastUpdatedBy: userId,
+               updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
 
       globalState.playbackTitle = title || null;
       globalState.playbackArtist = artist || null;
 
-      // 오버레이 브로드캐스트
       const endTimestamp = firebase.firestore.Timestamp.fromMillis(Date.now() + 10000);
       db.collection('artifacts').doc(appId).collection('public')
         .doc('data').collection('buster_call_state').doc('main_state')
-        .set({
-          showBusterCall: true,
-          lastBusterCallTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          updatedBy: userId,
-          videoId,
-          endTimestamp
-        }, { merge: true });
+        .set({ showBusterCall: true, lastBusterCallTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+               updatedBy: userId, videoId, endTimestamp }, { merge: true });
 
-      if (isYoutubeApiReady) {
-        player.loadVideoById(videoId);
-        player.playVideo();
-      }
+      if (isYoutubeApiReady) { player.loadVideoById(videoId); player.playVideo(); }
 
       globalState.videoId = videoId;
       const visibleList = getVisibleList();
@@ -1000,7 +979,6 @@
       if (globalState.isShuffleMode) {
         globalState.shuffleDeck = globalState.shuffleDeck.filter(id => id !== videoId);
       }
-
     } catch (e) {
       console.error(e);
       showMessage("버스터콜에 실패했습니다. " + e.message, 'error');
