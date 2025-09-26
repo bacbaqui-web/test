@@ -1,69 +1,70 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>사랑방 띵곡 플레이어</title>
   <style>
-    body { font-family: system-ui, -apple-apple-system, Segoe UI, Roboto, sans-serif; background:#111; color:#eee; margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; }
-    .wrap { max-width:900px; margin:24px auto; padding:0 16px; width:100%; }
-    .card { border:1px solid #444; border-radius:10px; padding:16px; margin:12px 0; background:#222; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .btn { background:#63b3ed; color:#fff; border:0; border-radius:999px; padding:.6rem 1rem; cursor:pointer; transition:background .2s; }
-    .btn:hover { background:#4299e1; }
-    .btn:disabled { background:#4a5568; cursor:not-allowed; }
-    .btn-toggle { background:#555; }
-    .btn-toggle.active { background:#fc8181; }
-    .btn-sort { background:#555; color:#fff; }
-    .btn-sort.most-liked { background:#f6ad55; } /* 노랑: 따봉많은순 */
-    .btn-sort.user-liked { background:#48bb78; } /* 초록: 내따봉 우선 */
+    body{font-family:system-ui,-apple-apple-system,Segoe UI,Roboto,sans-serif;background:#111;color:#eee;margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh}
+    .wrap{max-width:900px;margin:24px auto;padding:0 16px;width:100%}
+    .card{border:1px solid #444;border-radius:10px;padding:16px;margin:12px 0;background:#222}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .btn{background:#63b3ed;color:#fff;border:0;border-radius:999px;padding:.6rem 1rem;cursor:pointer;transition:background .2s}
+    .btn:hover{background:#4299e1}
+    .btn:disabled{background:#4a5568;cursor:not-allowed}
+    .btn-toggle{background:#555}
+    .btn-toggle.active{background:#fc8181}
+    .btn-sort{background:#555;color:#fff}
+    .btn-sort.most-liked{background:#f6ad55} /* 노랑 */
+    .btn-sort.user-liked{background:#48bb78} /* 초록 */
 
-    .muted { color:#a0aec0; }
-    input { background:#1f2937; color:#eee; border:1px solid #374151; border-radius:8px; padding:.55rem .7rem; flex:1; min-width:220px; outline:none; }
-    input:focus { border-color:#63b3ed; }
+    .muted{color:#a0aec0}
+    input{background:#1f2937;color:#eee;border:1px solid #374151;border-radius:8px;padding:.55rem .7rem;flex:1;min-width:220px;outline:none}
+    input:focus{border-color:#63b3ed}
 
-    .item { display:flex; justify-content:space-between; align-items:center; padding:.5rem .6rem; border-bottom:1px solid #2f3743; cursor:pointer; }
-    .item:hover { background:#2a3340; }
-    .item:last-child { border-bottom:none; }
-    .item .delete-btn { background:none; border:none; color:#fc8181; cursor:pointer; font-size:1.2em; line-height:1; margin-left:10px; opacity:.7; }
-    .item .delete-btn:hover { opacity:1; }
-    .item .info-icon { background:none; border:none; color:#63b3ed; cursor:pointer; font-size:1.2em; margin-right:5px; }
-    .item .like-btn, .current-like .like-btn { background:none; border:none; cursor:pointer; font-size:1.2em; color:inherit; }
-    .like-count { font-size:.9em; color:#a0aec0; margin-left:-5px; margin-right:5px; }
-    .uploader-btn { background:none; border:none; color:#63b3ed; cursor:pointer; font-size:.9em; margin-right:5px; padding:0; }
+    .item{display:flex;justify-content:space-between;align-items:center;padding:.5rem .6rem;border-bottom:1px solid #2f3743;cursor:pointer}
+    .item:hover{background:#2a3340}
+    .item:last-child{border-bottom:none}
+    .item .delete-btn{background:none;border:none;color:#fc8181;cursor:pointer;font-size:1.2em;line-height:1;margin-left:10px;opacity:.7}
+    .item .delete-btn:hover{opacity:1}
+    .item .info-icon{background:none;border:none;color:#63b3ed;cursor:pointer;font-size:1.2em;margin-right:5px}
 
-    .video-player { aspect-ratio:16/9; width:100%; max-width:800px; margin:8px auto; border-radius:8px; overflow:hidden; position:relative; }
-    .main-title { text-align:center; }
-    .sub-title { text-align:center; font-size:.9em; margin-top:-15px; color:#a0aec0; }
-    .message-box { display:none; background:#2d3748; color:#fff; padding:12px; border-radius:8px; text-align:center; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:1000; }
-    #player { height:100%; width:100%; }
-    .player-controls { display:none; }
+    .item .like-btn,.current-like .like-btn{background:none;border:none;cursor:pointer;font-size:1.2em;color:inherit}
+    .like-count{font-size:.9em;color:#a0aec0;margin-left:-5px;margin-right:5px}
 
-    .modal { display:none; position:fixed; z-index:1001; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4); justify-content:center; align-items:center; }
-    .modal-content { background-color:#222; padding:20px; border:1px solid #444; width:80%; max-width:500px; border-radius:10px; position:relative; }
-    .modal-content .modal-section { margin-bottom:15px; }
-    .modal-content .modal-section label { display:block; margin-bottom:5px; font-weight:bold; }
-    .modal-content input[type="text"], .modal-content textarea { width:100%; box-sizing:border-box; background:#1f2937; color:#eee; border:1px solid #374151; border-radius:8px; padding:10px; outline:none; }
-    .modal-content textarea { height:100px; resize:vertical; }
-    .modal-content .close-btn { color:#aaa; float:right; font-size:28px; font-weight:bold; }
-    .modal-content .close-btn:hover, .modal-content .close-btn:focus { color:#fff; cursor:pointer; }
-    .modal-content .save-btn { background:#38b2ac; color:#fff; border:0; border-radius:999px; padding:.6rem 1rem; margin-top:10px; cursor:pointer; }
+    .uploader-btn{background:none;border:none;color:#63b3ed;cursor:pointer;font-size:.9em;margin-right:5px;padding:0}
 
-    .confirm-modal { display:none; position:fixed; z-index:1002; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4); justify-content:center; align-items:center; }
-    .confirm-modal-content { background-color:#222; padding:20px; border:1px solid #444; width:80%; max-width:350px; border-radius:10px; text-align:center; }
-    .confirm-modal-buttons { display:flex; justify-content:space-around; }
-    .confirm-modal-buttons .btn { min-width:100px; }
+    .video-player{aspect-ratio:16/9;width:100%;max-width:800px;margin:8px auto;border-radius:8px;overflow:hidden;position:relative}
+    .main-title{text-align:center}
+    .sub-title{text-align:center;font-size:.9em;margin-top:-15px;color:#a0aec0}
+    .message-box{display:none;background:#2d3748;color:#fff;padding:12px;border-radius:8px;text-align:center;position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000}
+    #player{height:100%;width:100%}
 
-    #currentSongNotes { border-top:1px solid #444; margin-top:10px; padding-top:10px; }
-    #currentSongNotes p { margin:0 0 10px 0; color:#ccc; }
+    .modal{display:none;position:fixed;z-index:1001;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgba(0,0,0,0.4);justify-content:center;align-items:center}
+    .modal-content{background-color:#222;padding:20px;border:1px solid #444;width:80%;max-width:500px;border-radius:10px;position:relative}
+    .modal-content .modal-section{margin-bottom:15px}
+    .modal-content .modal-section label{display:block;margin-bottom:5px;font-weight:bold}
+    .modal-content input[type="text"],.modal-content textarea{width:100%;box-sizing:border-box;background:#1f2937;color:#eee;border:1px solid #374151;border-radius:8px;padding:10px;outline:none}
+    .modal-content textarea{height:100px;resize:vertical}
+    .modal-content .close-btn{color:#aaa;float:right;font-size:28px;font-weight:bold}
+    .modal-content .close-btn:hover,.modal-content .close-btn:focus{color:#fff;cursor:pointer}
+    .modal-content .save-btn{background:#38b2ac;color:#fff;border:0;border-radius:999px;padding:.6rem 1rem;margin-top:10px;cursor:pointer}
 
-    .song-details { flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; display:flex; align-items:center; gap:8px; }
-    .song-info-container { display:flex; align-items:center; justify-content:center; margin-top:10px; gap:10px; font-size:1.1em; font-weight:bold; text-align:center; }
-    .song-info-text { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 190px); display:flex; align-items:center; justify-content:center; }
-    .current-like { display:flex; align-items:center; gap:6px; }
-    .current-info-btn { background:none; border:none; color:#63b3ed; cursor:pointer; font-size:1.2em; margin-right:5px; padding:0; width:40px; height:40px; display:flex; justify-content:center; align-items:center; }
+    .confirm-modal{display:none;position:fixed;z-index:1002;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgba(0,0,0,0.4);justify-content:center;align-items:center}
+    .confirm-modal-content{background-color:#222;padding:20px;border:1px solid #444;width:80%;max-width:350px;border-radius:10px;text-align:center}
+    .confirm-modal-buttons{display:flex;justify-content:space-around}
+    .confirm-modal-buttons .btn{min-width:100px}
 
-    .new-tag { background-color:#f6ad55; color:#fff; font-size:.7em; font-weight:bold; padding:2px 6px; border-radius:999px; margin-left:8px; vertical-align:middle; text-transform:uppercase; }
+    #currentSongNotes{border-top:1px solid #444;margin-top:10px;padding-top:10px}
+    #currentSongNotes p{margin:0 0 10px 0;color:#ccc}
+
+    .song-details{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}
+    .song-info-container{display:flex;align-items:center;justify-content:center;margin-top:10px;gap:10px;font-size:1.1em;font-weight:bold;text-align:center}
+    .song-info-text{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 190px);display:flex;align-items:center;justify-content:center}
+    .current-like{display:flex;align-items:center;gap:6px}
+    .current-info-btn{background:none;border:none;color:#63b3ed;cursor:pointer;font-size:1.2em;margin-right:5px;padding:0;width:40px;height:40px;display:flex;justify-content:center;align-items:center}
+
+    .new-tag{background-color:#f6ad55;color:#fff;font-size:.7em;font-weight:bold;padding:2px 6px;border-radius:999px;margin-left:8px;vertical-align:middle;text-transform:uppercase}
   </style>
   <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
@@ -107,9 +108,9 @@
       <button id="togglePlayerBtn" class="btn btn-toggle">화면 숨기기</button>
     </div>
 
-    <div id="manual-input" style="display:none; margin-top: 10px;">
-      <div class="row"><input id="manualTitle" placeholder="제목을 수동으로 입력해주세요"/></div>
-      <div class="row" style="margin-top: 10px;"><input id="manualArtist" placeholder="아티스트를 수동으로 입력해주세요"/></div>
+    <div id="manual-input" style="display:none;margin-top:10px">
+      <div class="row"><input id="manualTitle" placeholder="제목 수동 입력"/></div>
+      <div class="row" style="margin-top:10px"><input id="manualArtist" placeholder="아티스트 수동 입력"/></div>
     </div>
 
     <div id="playlist" class="card" style="margin:10px 0 0 0">
@@ -159,7 +160,7 @@
 </div>
 
 <script>
-  // ---- Firebase/환경 ----
+  // ===== Firebase / 환경 =====
   const __firebase_config='{"apiKey":"AIzaSyDz6xGJNKXinG5rREjdrPz7toIYGZXzilU","authDomain":"sarangbangmusicplaylist.firebaseapp.com","projectId":"sarangbangmusicplaylist","storageBucket":"sarangbangmusicplaylist.appspot.com","messagingSenderId":"193412502606","appId":"1:193412502606:web:0f7f9ddbef1ee6711d1ff","measurementId":"G-L14GH3BHYD"}';
   const __app_id="default-app-id";
   const __initial_auth_token="";
@@ -174,7 +175,7 @@
   let likesLoaded=false;
   const pendingLike=new Set();
 
-  // ---- DOM ----
+  // ===== DOM =====
   const urlInput=document.getElementById('url');
   const addBtn=document.getElementById('add');
   const shuffleBtn=document.getElementById('shuffleBtn');
@@ -210,7 +211,7 @@
     notes:{},         // {videoId:{uploader, info, comment}}
     isShuffleMode:false,
     likeSortMode:0,   // 0 최신, 1 따봉많은순, 2 내따봉우선
-    filterUploader:null, // 업로더 우선 정렬
+    filterUploader:null,
     videoId:'',
     currentPlayingIndex:-1,
     deck:[],          // 셔플 큐
@@ -218,14 +219,14 @@
     playbackArtist:null,
   };
 
-  // ---- YouTube Iframe API ----
+  // ===== YouTube Iframe API =====
   window.onYouTubeIframeAPIReady=function(){
     isYoutubeApiReady=true;
     player=new YT.Player('player',{height:'100%',width:'100%',videoId:'',playerVars:{autoplay:1,controls:1},events:{onStateChange:onPlayerStateChange}});
   };
   function onPlayerStateChange(e){ if(e.data===YT.PlayerState.ENDED) playNext(); }
 
-  // ---- Utils ----
+  // ===== Utils =====
   function showMessage(msg,type='info'){
     messageBox.textContent=msg;
     messageBox.style.background=(type==='error')?'#fc8181':'#2d3748';
@@ -247,7 +248,7 @@
   function isLiked(videoId){ return !!globalState.songLikes[videoId]?.likedBy?.[userId]; }
   function shuffleArray(a){ const arr=[...a]; for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
 
-  // ---- Boot ----
+  // ===== Boot =====
   async function boot(){
     try{ firebase.initializeApp(firebaseConfig); db=firebase.firestore(); } catch(e){ console.error(e); return; }
     try{
@@ -292,11 +293,11 @@
       });
   }
 
-  // ---- Sorting / Visible list ----
+  // ===== Sorting / Visible list =====
   function getVisibleList(){
     let list=[...globalState.playlist];
 
-    // 기본: 최신순
+    // 최신순
     list.sort((a,b)=>{
       const ta=a.createdAt?.toDate?a.createdAt.toDate().getTime():a.createdAt?.getTime();
       const tb=b.createdAt?.toDate?b.createdAt.toDate().getTime():b.createdAt?.getTime();
@@ -324,7 +325,7 @@
     return list;
   }
 
-  // ---- Deck 구성 ----
+  // ===== Deck 구성 =====
   function rebuildDeck(){
     const visibleIds = getVisibleList().map(s=>s.videoId).filter(id=>id!==globalState.videoId);
     if(globalState.likeSortMode===2){
@@ -336,7 +337,7 @@
     }
   }
 
-  // ---- 업로더 필터 토글 ----
+  // ===== 업로더 필터 토글 =====
   function filterByUploader(uploaderName){
     if(globalState.filterUploader === uploaderName){
       globalState.filterUploader = null;
@@ -349,7 +350,7 @@
     renderList();
   }
 
-  // ---- Render ----
+  // ===== Render =====
   function renderList(){
     listEl.innerHTML='';
     const list=getVisibleList();
@@ -382,7 +383,11 @@
       likeBtn.disabled = !likesLoaded;
       likeBtn.setAttribute('aria-pressed', mine?'true':'false');
       likeBtn.textContent = mine ? '👍' : '👍🏿';
-      likeBtn.addEventListener('click',(e)=>{ e.stopPropagation(); if(!likesLoaded) return; handleLike(item.videoId); });
+      likeBtn.addEventListener('click',async (e)=>{
+        e.stopPropagation();
+        if(!likesLoaded) return;
+        await handleLike(item.videoId); // DB 기준 토글
+      });
 
       const countSpan=document.createElement('span'); countSpan.className='like-count';
       countSpan.textContent=globalState.songLikes[item.videoId]?.likeCount||0;
@@ -441,7 +446,7 @@
     const mine = vid ? isLiked(vid) : false;
     currentLikeBtn.disabled = !likesLoaded || !vid;
     currentLikeBtn.textContent = mine ? '👍' : '👍🏿';
-    currentLikeBtn.onclick = ()=>{ if(!likesLoaded || !vid) return; handleLike(vid); };
+    currentLikeBtn.onclick = async ()=>{ if(!likesLoaded || !vid) return; await handleLike(vid); };
     currentLikeCountEl.textContent = vid ? (globalState.songLikes[vid]?.likeCount||0) : 0;
   }
 
@@ -462,7 +467,7 @@
     }catch(e){ el.innerHTML='<span class="muted">정보를 불러오는 데 실패했습니다.</span>'; }
   }
 
-  // ---- Playlist update ----
+  // ===== Playlist update =====
   let playlistSaveTimer=null;
   function updatePlaylist(newPlaylist){
     globalState.playlist=newPlaylist;
@@ -477,7 +482,7 @@
     },200);
   }
 
-  // ---- Like toggle (유저당 1회, 재클릭 취소) ----
+  // ===== Like toggle (유저당 1회, 재클릭 취소) =====
   async function handleLike(videoId){
     if(!userId){ showMessage("로그인되지 않았습니다.", 'error'); return; }
     if(pendingLike.has(videoId)) return;
@@ -486,14 +491,12 @@
     const docRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('song_likes').doc(videoId);
 
     try{
-      let result = { nextCount:0, nextMine:false };
-
       await db.runTransaction(async(tr)=>{
         const snap=await tr.get(docRef);
         let likeCount=0, likedBy={};
         if(snap.exists){ likeCount=snap.data().likeCount||0; likedBy=snap.data().likedBy||{}; }
 
-        const hasLiked=!!likedBy[userId];
+        const hasLiked=!!likedBy[userId]; // ✅ DB 기준
         if(hasLiked){
           likeCount=Math.max(0, likeCount-1);
           delete likedBy[userId];
@@ -504,22 +507,10 @@
           showMessage("좋아요 👍");
         }
 
-        result.nextCount=likeCount;
-        result.nextMine=!hasLiked;
-
         tr.set(docRef,{ likeCount, likedBy, lastUpdated:firebase.firestore.FieldValue.serverTimestamp() },{merge:true});
       });
 
-      // 낙관적 동기화
-      if(!globalState.songLikes[videoId]) globalState.songLikes[videoId]={};
-      globalState.songLikes[videoId].likeCount = result.nextCount;
-      const lb = { ...(globalState.songLikes[videoId].likedBy||{}) };
-      if(result.nextMine) lb[userId]=true; else delete lb[userId];
-      globalState.songLikes[videoId].likedBy = lb;
-
-      renderList();
-      renderCurrentLikeUI();
-      if(globalState.isShuffleMode) rebuildDeck();
+      // ✅ 낙관적 업데이트 없음. 스냅샷으로만 UI 갱신.
     }catch(e){
       console.error(e);
       showMessage("좋아요 처리 실패: "+e.message, 'error');
@@ -528,7 +519,7 @@
     }
   }
 
-  // ---- Player ----
+  // ===== Player =====
   function playVideo(index){
     const list=getVisibleList(); if(!list.length) return;
     const i=Math.max(0, Math.min(index, list.length-1));
@@ -567,7 +558,7 @@
     const idx=(globalState.currentPlayingIndex-1+list.length)%list.length; playVideo(idx);
   }
 
-  // ---- Info modal ----
+  // ===== Info modal =====
   function openInfoModal(videoId){
     const item=globalState.playlist.find(i=>i.videoId===videoId);
     songTitleInput.value=item?.title||globalState.playbackTitle||'';
@@ -592,7 +583,7 @@
     closeInfoModal(); showMessage("노트 저장");
   }
 
-  // ---- Add/search ----
+  // ===== Add/search =====
   async function fetchVideoDetails(videoId){
     const apiUrl=`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`;
     const r=await fetch(apiUrl); if(!r.ok) throw new Error(`API ${r.status}`);
@@ -616,7 +607,7 @@
     } else { throw new Error("검색 결과 없음"); }
   }
 
-  // ---- Wire UI ----
+  // ===== Wire UI =====
   function wireUI(){
     addBtn.addEventListener('click', async ()=>{
       const val=urlInput.value.trim();
@@ -662,9 +653,7 @@
           if(globalState.likeSortMode===2) showMessage("내 좋아요 먼저 셔플, 이후 나머지");
           else showMessage("전체 셔플");
         }
-      } else {
-        showMessage("셔플 해제");
-      }
+      } else { showMessage("셔플 해제"); }
     });
 
     // 따봉 정렬 3단계
