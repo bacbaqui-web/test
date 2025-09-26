@@ -15,8 +15,8 @@
     .btn-toggle { background: #555; }
     .btn-toggle.active { background: #fc8181; }
     .btn-sort { background-color: #555; color: #fff; }
-    .btn-sort.most-liked { background-color: #f6ad55; } /* 노랑: 따봉많은순 */
-    .btn-sort.user-liked { background-color: #48bb78; } /* 초록: 내따봉 우선 */
+    .btn-sort.most-liked { background-color: #f6ad55; }
+    .btn-sort.user-liked { background-color: #48bb78; }
 
     .ok { color: #81e6d9; }
     .fail { color: #fc8181; }
@@ -225,9 +225,9 @@
     playlist: [],
     shuffleDeck: [],
     notes: {},
-    songLikes: {},               // {videoId: {likeCount}}
-    myLikedSet: new Set(),       // Set<videoId> — users/{uid}/my_likes
-    likeSortMode: 0,             // 0 최신, 1 따봉많은순, 2 내따봉우선
+    songLikes: {},
+    myLikedSet: new Set(),
+    likeSortMode: 0,
     isShuffleMode: false,
     filterUploader: null,
     videoId: '',
@@ -240,7 +240,6 @@
     playbackArtist: null,
   };
 
-  // 연타 방지·로드 상태
   const pendingLike = new Set();
   let likesLoaded = false;
   let myLikesLoaded = false;
@@ -319,6 +318,22 @@
       }
     });
 
+    // ★ 추가: 재생 상태 리스너
+    const playbackRef = db.collection('artifacts').doc(appId).collection('public')
+      .doc('data').collection('playback_state').doc('main_state');
+    playbackRef.onSnapshot((snap) => {
+      if (!snap.exists) return;
+      const s = snap.data() || {};
+      if (s.lastUpdatedBy === userId) return;
+      try {
+        if (isYoutubeApiReady && s.videoId) {
+          player.loadVideoById(s.videoId);
+          player.seekTo(s.timestamp || 0, true);
+          updatePlayingSong(s.videoId);
+        }
+      } catch(e) { console.error(e); }
+    });
+
     // 재생목록
     const playlistRef = db.collection('artifacts').doc(appId).collection('public')
       .doc('data').collection('playlist_state').doc('main_playlist');
@@ -340,7 +355,7 @@
       renderCurrentSongNotes();
     });
 
-    // 따봉 집계(총합)
+    // 따봉 집계
     const likesRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('song_likes');
     likesRef.onSnapshot(snapshot => {
       const newLikes = {};
@@ -352,7 +367,7 @@
       if (globalState.isShuffleMode) rebuildShuffleDeck();
     });
 
-    // 내 따봉 세트(users/{uid}/my_likes)
+    // 내 따봉
     const myLikesRef = db.collection('users').doc(userId).collection('my_likes');
     myLikesRef.onSnapshot(snapshot => {
       const s = new Set();
@@ -379,21 +394,18 @@
   function getVisibleList() {
     let list = [...globalState.playlist];
 
-    // 최신순 기본
     list.sort((a,b) => {
       const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : a.createdAt?.getTime();
       const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : b.createdAt?.getTime();
       return (timeB || 0) - (timeA || 0);
     });
 
-    // 업로더 상단 정렬
     if (globalState.filterUploader) {
       const filtered = list.filter(item => (globalState.notes[item.videoId]?.uploader || '익명') === globalState.filterUploader);
       const others = list.filter(item => (globalState.notes[item.videoId]?.uploader || '익명') !== globalState.filterUploader);
       list = [...filtered, ...others];
     }
 
-    // 따봉 정렬
     if (globalState.likeSortMode === 1) {
       list.sort((a, b) => likeCount(b.videoId) - likeCount(a.videoId));
     } else if (globalState.likeSortMode === 2) {
@@ -470,7 +482,6 @@
       div.dataset.videoId = item.videoId;
       div.dataset.index = index;
 
-      // 좌측: 제목
       const songDetails = document.createElement('div');
       songDetails.className = 'song-details';
 
@@ -491,7 +502,6 @@
         titleSpan.prepend(newTag, ' ');
       }
 
-      // 우측: 업로더 → 좋아요 → 카운트 → 삭제
       const rightBox = document.createElement('div');
       rightBox.className = 'right-box';
 
@@ -561,7 +571,6 @@
       listEl.appendChild(div);
     });
 
-    // 현재 재생 보정
     const currentSongIsInPlaylist = playlistToRender.some(item => item.videoId === globalState.videoId);
     if (globalState.videoId && !currentSongIsInPlaylist && playlistToRender.length > 0) {
       let nextIndex = globalState.currentPlayingIndex;
@@ -574,7 +583,7 @@
     renderCurrentSongInfo();
   }
 
-  // ===== 좋아요 토글 (유저별 1회, 재클릭 취소) =====
+  // ===== 좋아요 토글 =====
   async function handleLike(videoId, btnEl){
     if(!userId){ showMessage("로그인 필요", 'error'); return; }
     if(pendingLike.has(videoId)) return;
@@ -591,12 +600,10 @@
         let count = aggSnap.exists ? (aggSnap.data().likeCount || 0) : 0;
 
         if(mySnap.exists){
-          // 취소
           count = Math.max(0, count - 1);
           tr.delete(myRef);
           tr.set(aggRef, { likeCount: count, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
         } else {
-          // 신규 좋아요
           count = count + 1;
           tr.set(myRef, { likedAt: firebase.firestore.FieldValue.serverTimestamp() });
           tr.set(aggRef, { likeCount: count, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
@@ -793,6 +800,12 @@
           endTimestamp
         }, { merge: true });
 
+      // ★ 추가: 로컬 즉시 오버레이 표시 + 쿨다운 즉시 시작
+      busterCallOverlay.classList.add('show');
+      setTimeout(()=>busterCallOverlay.classList.remove('show'), 10000);
+      globalState.lastBusterCallTimestamp = Date.now();
+      checkBusterCallCooldown();
+
       if (isYoutubeApiReady) {
         player.loadVideoById(videoId);
         player.playVideo();
@@ -972,9 +985,8 @@
       updatePlayingSong(globalState.videoId);
     });
 
-    // 따봉 정렬 3단계
     likeSortBtn.addEventListener('click', () => {
-      globalState.likeSortMode = (globalState.likeSortMode + 1) % 3; // 0->1->2->0
+      globalState.likeSortMode = (globalState.likeSortMode + 1) % 3;
       likeSortBtn.classList.remove('most-liked','user-liked');
       if (globalState.likeSortMode === 1) {
         likeSortBtn.classList.add('most-liked');
