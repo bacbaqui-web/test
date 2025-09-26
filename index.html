@@ -1,412 +1,1016 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>사랑방 띵곡 플레이어</title>
-<style>
-  body{font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#111;color:#eee;margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh}
-  .wrap{max-width:900px;margin:24px auto;padding:0 16px;width:100%}
-  .card{border:1px solid #444;border-radius:10px;padding:16px;margin:12px 0;background:#222}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .btn{background:#63b3ed;color:#fff;border:0;border-radius:999px;padding:.6rem 1rem;cursor:pointer}
-  .btn:hover{background:#4299e1}
-  .btn:disabled{background:#4a5568;cursor:not-allowed}
-  .btn-toggle{background:#555}
-  .btn-toggle.active{background:#fc8181}
-  .btn-sort{background:#555;color:#fff}
-  .btn-sort.most-liked{background:#f6ad55} /* 노랑 */
-  .btn-sort.user-liked{background:#48bb78} /* 초록 */
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사랑방 띵곡 플레이어</title>
+  <style>
+    body { font-family: system-ui, -apple-apple-system, Segoe UI, Roboto, sans-serif; background: #111; color: #eee; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .wrap { max-width: 900px; margin: 24px auto; padding: 0 16px; width: 100%; }
+    .card { border: 1px solid #444; border-radius: 10px; padding: 16px; margin: 12px 0; background: #222; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .btn { background: #63b3ed; color: #fff; border: 0; border-radius: 999px; padding: .6rem 1rem; cursor: pointer; transition: background 0.2s; }
+    .btn:hover { background: #4299e1; }
+    .btn:disabled { background: #4a5568; cursor: not-allowed; }
+    .btn-toggle { background: #555; }
+    .btn-toggle.active { background: #fc8181; }
+    .btn-sort { background-color: #555; color: #fff; }
+    .btn-sort.most-liked { background-color: #f6ad55; } /* 노랑: 따봉많은순 */
+    .btn-sort.user-liked { background-color: #48bb78; } /* 초록: 내따봉 우선 */
 
-  .muted{color:#a0aec0}
-  input{background:#1f2937;color:#eee;border:1px solid #374151;border-radius:8px;padding:.55rem .7rem;flex:1;min-width:220px;outline:none}
-  input:focus{border-color:#63b3ed}
-
-  .item{display:flex;justify-content:space-between;align-items:center;padding:.5rem .6rem;border-bottom:1px solid #2f3743;cursor:pointer}
-  .item:hover{background:#2a3340}
-  .item:last-child{border-bottom:none}
-  .item .delete-btn{background:none;border:none;color:#fc8181;cursor:pointer;font-size:1.2em;line-height:1;margin-left:10px;opacity:.7}
-  .item .delete-btn:hover{opacity:1}
-  .item .info-icon{background:none;border:none;color:#63b3ed;cursor:pointer;font-size:1.2em;margin-right:5px}
-
-  .item .like-btn,.current-like .like-btn{background:none;border:none;cursor:pointer;font-size:1.2em;color:inherit}
-  .like-count{font-size:.9em;color:#a0aec0;margin-left:-5px;margin-right:5px}
-  .uploader-btn{background:none;border:none;color:#63b3ed;cursor:pointer;font-size:.9em;margin-right:5px;padding:0}
-
-  .video-player{aspect-ratio:16/9;width:100%;max-width:800px;margin:8px auto;border-radius:8px;overflow:hidden;position:relative}
-  .message-box{display:none;background:#2d3748;color:#fff;padding:12px;border-radius:8px;text-align:center;position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000}
-  #player{height:100%;width:100%}
-
-  .modal{display:none;position:fixed;z-index:1001;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.4);justify-content:center;align-items:center}
-  .modal-content{background:#222;padding:20px;border:1px solid #444;width:80%;max-width:500px;border-radius:10px}
-  .modal-content .modal-section{margin-bottom:15px}
-  .modal-content .modal-section label{display:block;margin-bottom:5px;font-weight:bold}
-  .modal-content input[type="text"],.modal-content textarea{width:100%;box-sizing:border-box;background:#1f2937;color:#eee;border:1px solid #374151;border-radius:8px;padding:10px;outline:none}
-  .modal-content textarea{height:100px;resize:vertical}
-  .modal-content .close-btn{color:#aaa;float:right;font-size:28px;font-weight:bold}
-  .modal-content .close-btn:hover{color:#fff;cursor:pointer}
-  .modal-content .save-btn{background:#38b2ac;color:#fff;border:0;border-radius:999px;padding:.6rem 1rem;margin-top:10px;cursor:pointer}
-
-  .song-info-container{display:flex;align-items:center;justify-content:center;margin-top:10px;gap:10px;font-size:1.1em;font-weight:bold;text-align:center}
-  .song-info-text{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 190px);display:flex;align-items:center;justify-content:center}
-  .current-like{display:flex;align-items:center;gap:6px}
-  .current-info-btn{background:none;border:none;color:#63b3ed;cursor:pointer;font-size:1.2em;margin-right:5px;padding:0;width:40px;height:40px;display:flex;justify-content:center;align-items:center}
-
-  #currentSongNotes{border-top:1px solid #444;margin-top:10px;padding-top:10px}
-  #currentSongNotes p{margin:0 0 10px 0;color:#ccc}
-  .song-details{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}
-  .new-tag{background:#f6ad55;color:#fff;font-size:.7em;font-weight:bold;padding:2px 6px;border-radius:999px;margin-left:8px;text-transform:uppercase}
-</style>
-<script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
-<script src="https://www.youtube.com/iframe_api"></script>
+    .ok { color: #81e6d9; }
+    .fail { color: #fc8181; }
+    .muted { color: #a0aec0; }
+    input { background: #1f2937; color: #eee; border: 1px solid #374151; border-radius: 8px; padding: .55rem .7rem; flex: 1; min-width: 220px; outline: none; transition: border-color 0.2s; }
+    input:focus { border-color: #63b3ed; }
+    .item { display: flex; justify-content: space-between; align-items: center; padding: .5rem .6rem; border-bottom: 1px solid #2f3743; cursor: pointer; transition: background 0.2s; }
+    .item:hover { background: #2a3340; }
+    .item:last-child { border-bottom: none; }
+    .item .delete-btn { background: none; border: none; color: #fc8181; cursor: pointer; font-size: 1.2em; line-height: 1; margin-left: 10px; opacity: 0.7; transition: opacity 0.2s; }
+    .item .delete-btn:hover { opacity: 1; }
+    .item .info-icon { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 1.2em; margin-right: 5px; }
+    .item .like-btn { background: none; border: none; color: inherit; cursor: pointer; font-size: 1.2em; margin-right: 5px; transition: transform .05s ease; }
+    .item .like-btn:active { transform: scale(0.96); }
+    .like-count { font-size: 0.9em; color: #a0aec0; margin-left: -5px; margin-right: 5px;}
+    .uploader-btn { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 0.9em; margin-right: 5px; padding: 0; }
+    .video-player { aspect-ratio: 16 / 9; width: 100%; max-width: 800px; margin: 8px auto; border-radius: 8px; overflow: hidden; position: relative; }
+    .main-title { text-align: center; }
+    .sub-title { text-align: center; font-size: 0.9em; margin-top: -15px; color: #a0aec0; }
+    .message-box { display: none; background: #2d3748; color: #fff; padding: 12px; border-radius: 8px; text-align: center; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; }
+    #player { height: 100%; width: 100%; }
+    .player-controls { display: none; }
+    .modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); justify-content: center; align-items: center; }
+    .modal-content { background-color: #222; padding: 20px; border: 1px solid #444; width: 80%; max-width: 500px; border-radius: 10px; position: relative; }
+    .modal-content .modal-section { margin-bottom: 15px; }
+    .modal-content .modal-section label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .modal-content input[type="text"], .modal-content textarea { width: 100%; box-sizing: border-box; background: #1f2937; color: #eee; border: 1px solid #374151; border-radius: 8px; padding: 10px; outline: none; }
+    .modal-content textarea { height: 100px; resize: vertical; }
+    .modal-content .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
+    .modal-content .close-btn:hover, .modal-content .close-btn:focus { color: #fff; text-decoration: none; cursor: pointer; }
+    .modal-content .save-btn { background: #38b2ac; color: #fff; border: 0; border-radius: 999px; padding: .6rem 1rem; margin-top: 10px; cursor: pointer; }
+    .confirm-modal { display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); justify-content: center; align-items: center; }
+    .confirm-modal-content { background-color: #222; padding: 20px; border: 1px solid #444; width: 80%; max-width: 350px; border-radius: 10px; text-align: center; }
+    .confirm-modal-buttons { display: flex; justify-content: space-around; }
+    .confirm-modal-buttons .btn { min-width: 100px; }
+    #currentSongNotes { border-top: 1px solid #444; margin-top: 10px; padding-top: 10px; }
+    #currentSongNotes p { margin: 0 0 10px 0; color: #ccc; }
+    .song-details { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: flex; align-items: center; }
+    .buster-call-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); z-index: 999; transition: opacity 0.5s ease-in-out; opacity: 0; pointer-events: none; }
+    .buster-call-overlay.show { opacity: 1; }
+    .buster-call-overlay h2 { font-size: 3em; margin: 0; animation: pulse 1s infinite; }
+    .buster-call-overlay p { font-size: 1.5em; margin: 0; }
+    @keyframes pulse { 0% { transform: scale(1);} 50% { transform: scale(1.05);} 100% { transform: scale(1);} }
+    .song-info-container { display: flex; align-items: center; justify-content: center; margin-top: 10px; gap: 10px; font-size: 1.2em; font-weight: bold; text-align: center; }
+    .song-info-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 220px); display: flex; align-items: center; justify-content: center; }
+    .current-info-btn { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 1.2em; margin-right: 5px; padding: 0; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; }
+    .current-like { display: flex; align-items: center; gap: 6px; }
+    .new-tag { background-color: #f6ad55; color: #fff; font-size: 0.7em; font-weight: bold; padding: 2px 6px; border-radius: 999px; margin-left: 8px; vertical-align: middle; text-transform: uppercase; }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
+<audio id="dingdong-sound" src="https://cdn.pixabay.com/audio/2021/08/04/audio_33e07f59d5.mp3" preload="auto" volume="0.3"></audio>
 <div id="message-box" class="message-box"></div>
-
 <div class="wrap">
-  <h1 style="text-align:center">사랑방 띵곡 플레이어</h1>
-  <div class="card">
-    <div id="player" class="video-player"></div>
+  <div class="main-title">
+    <h1>사랑방 띵곡 플레이어</h1>
+    <p class="sub-title">작가님들의 띵곡을 추천해주세요</p>
+  </div>
 
-    <div class="song-info-container">
-      <button id="prevBtn" class="btn">&lt;</button>
-      <div id="currentSongInfo" class="song-info-text"><span class="muted">현재 재생 없음</span></div>
-      <div class="current-like">
-        <button id="currentLikeBtn" class="like-btn" disabled>👍🏿</button>
-        <span id="currentLikeCount" class="like-count">0</span>
+  <div class="card">
+    <div id="player-container" class="video-player">
+      <div id="player"></div>
+      <div id="buster-call-overlay" class="buster-call-overlay">
+        <h2>버스터콜!!!</h2>
+        <p>모두집중!!!</p>
       </div>
-      <button id="nextBtn" class="btn">&gt;</button>
     </div>
 
-    <div id="currentSongNotes"><span class="muted"></span></div>
+    <div class="song-info-container">
+      <button id="prev-song-btn-inline" class="btn">&lt;</button>
+      <div id="currentSongInfo" class="song-info-text">
+        <span class="muted">현재 재생 중인 곡이 없습니다.</span>
+      </div>
+      <div class="current-like">
+        <button id="current-like-btn" class="like-btn" disabled>👍🏿</button>
+        <span id="current-like-count" class="like-count">0</span>
+      </div>
+      <button id="next-song-btn-inline" class="btn">&gt;</button>
+    </div>
+
+    <div id="currentSongNotes">
+      <span class="muted"></span>
+    </div>
 
     <div class="row" style="margin-top:10px">
-      <input id="url" placeholder="유튜브 링크 또는 제목"/>
+      <input id="url" placeholder="유튜브 링크 또는 노래 제목을 입력"/>
       <button id="add" class="btn">추가</button>
       <button id="shuffleBtn" class="btn btn-toggle">셔플</button>
       <button id="likeSortBtn" class="btn btn-sort">따봉 정렬</button>
+      <button id="togglePlayerBtn" class="btn btn-toggle">화면 숨기기</button>
+      <button id="busterCallToggle" class="btn btn-toggle">버스터콜</button>
     </div>
 
-    <div id="playlist" class="card" style="margin-top:10px"><div class="muted">재생목록 없음</div></div>
+    <div id="manual-input" style="display:none; margin-top: 10px;">
+      <div class="row">
+        <input id="manualTitle" placeholder="제목을 수동으로 입력해주세요"/>
+      </div>
+      <div class="row" style="margin-top: 10px;">
+        <input id="manualArtist" placeholder="아티스트를 수동으로 입력해주세요"/>
+      </div>
+    </div>
+
+    <div id="playlist" class="card" style="margin:10px 0 0 0">
+      <div class="muted">재생목록이 비어있습니다.</div>
+    </div>
   </div>
 </div>
 
-<!-- Info Modal -->
 <div id="infoModal" class="modal">
   <div class="modal-content">
     <span class="close-btn">&times;</span>
     <h3>노래 정보</h3>
     <div class="modal-section">
       <label for="songTitleInput">노래 제목</label>
-      <input id="songTitleInput" type="text"/>
+      <input type="text" id="songTitleInput" placeholder="노래 제목을 입력하세요..."/>
     </div>
     <div class="modal-section">
       <label for="artistInput">아티스트</label>
-      <input id="artistInput" type="text"/>
+      <input type="text" id="artistInput" placeholder="아티스트 이름을 입력하세요..."/>
     </div>
     <div class="modal-section">
       <label for="uploaderInput">올린 사람</label>
-      <input id="uploaderInput" type="text"/>
+      <input type="text" id="uploaderInput" placeholder="이름을 입력하세요..."/>
     </div>
     <div class="modal-section">
-      <label for="infoTextarea">노래 정보</label>
-      <textarea id="infoTextarea"></textarea>
+      <label for="infoTextarea">노래에 대한 정보</label>
+      <textarea id="infoTextarea" placeholder="노트에 메모를 입력하세요..."></textarea>
     </div>
     <div class="modal-section">
       <label for="commentTextarea">댓글</label>
-      <textarea id="commentTextarea"></textarea>
+      <textarea id="commentTextarea" placeholder="댓글을 입력하세요..."></textarea>
     </div>
     <button id="saveInfoBtn" class="save-btn">저장</button>
   </div>
 </div>
 
+<div id="confirmModal" class="confirm-modal">
+  <div class="confirm-modal-content">
+    <p>정말로 삭제하시겠습니까?</p>
+    <div class="confirm-modal-buttons">
+      <button id="confirmYes" class="btn">예</button>
+      <button id="confirmNo" class="btn btn-toggle">아니오</button>
+    </div>
+  </div>
+</div>
+
 <script>
-/* ===== Firebase ===== */
-const __firebase_config='{"apiKey":"AIzaSyDz6xGJNKXinG5rREjdrPz7toIYGZXzilU","authDomain":"sarangbangmusicplaylist.firebaseapp.com","projectId":"sarangbangmusicplaylist","storageBucket":"sarangbangmusicplaylist.appspot.com","messagingSenderId":"193412502606","appId":"1:193412502606:web:0f7f9ddbef1ee6711d1ff"}';
-const firebaseConfig=JSON.parse(__firebase_config);
-firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
+  // ===== 환경 =====
+  const __firebase_config = '{"apiKey":"AIzaSyDz6xGJNKXinG5rREjdrPz7toIYGZXzilU","authDomain":"sarangbangmusicplaylist.firebaseapp.com","projectId":"sarangbangmusicplaylist","storageBucket":"sarangbangmusicplaylist.appspot.com","messagingSenderId":"193412502606","appId":"1:193412502606:web:0f7f9ddbef1ee6711d1ff","measurementId":"G-L14GH3BHYD"}';
+  const __app_id = "default-app-id";
+  const __initial_auth_token = "";
+  const firebaseConfig = JSON.parse(__firebase_config);
+  const YOUTUBE_API_KEY = "AIzaSyB2GymrywkBYx4Mbt_xHNiYEV44MbfKY2w";
 
-/* ===== App State ===== */
-const appId="default-app-id";
-let userId=null, player=null, isYoutubeApiReady=false;
+  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+  let userId = null;
+  let authed = false;
+  let db;
+  let player;
+  let isYoutubeApiReady = false;
 
-const state={
-  playlist:[],
-  notes:{},
-  likeAgg:{},        // {videoId:{likeCount}}
-  myLikedSet:new Set(), // Set<videoId>
-  likeSnapReady:false,
-  myLikeSnapReady:false,
-  likeSortMode:0,    // 0 최신, 1 따봉많은순, 2 내따봉우선
-  isShuffle:false,
-  deck:[],
-  currentVid:null,
-  currentIdx:-1
-};
+  // ===== DOM =====
+  const urlInput = document.getElementById('url');
+  const addBtn = document.getElementById('add');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const likeSortBtn = document.getElementById('likeSortBtn');
+  const listEl = document.getElementById('playlist');
+  const messageBox = document.getElementById('message-box');
+  const manualInputDiv = document.getElementById('manual-input');
+  const manualTitleInput = document.getElementById('manualTitle');
+  const manualArtistInput = document.getElementById('manualArtist');
+  const busterCallToggleBtn = document.getElementById('busterCallToggle');
+  const prevSongBtn = document.getElementById('prev-song-btn-inline');
+  const nextSongBtn = document.getElementById('next-song-btn-inline');
+  const currentSongInfoEl = document.getElementById('currentSongInfo');
+  const currentSongNotesEl = document.getElementById('currentSongNotes');
+  const busterCallOverlay = document.getElementById('buster-call-overlay');
+  const togglePlayerBtn = document.getElementById('togglePlayerBtn');
+  const playerContainer = document.getElementById('player-container');
+  const currentLikeBtn = document.getElementById('current-like-btn');
+  const currentLikeCountEl = document.getElementById('current-like-count');
+  const dingdongSound = document.getElementById('dingdong-sound');
 
-/* ===== UI refs ===== */
-const listEl=document.getElementById('playlist');
-const likeSortBtn=document.getElementById('likeSortBtn');
-const shuffleBtn=document.getElementById('shuffleBtn');
-const currentLikeBtn=document.getElementById('currentLikeBtn');
-const currentLikeCount=document.getElementById('currentLikeCount');
-const currentSongInfo=document.getElementById('currentSongInfo');
-const prevBtn=document.getElementById('prevBtn');
-const nextBtn=document.getElementById('nextBtn');
-const msg=document.getElementById('message-box');
+  const infoModal = document.getElementById('infoModal');
+  const songTitleInput = document.getElementById('songTitleInput');
+  const artistInput = document.getElementById('artistInput');
+  const uploaderInput = document.getElementById('uploaderInput');
+  const infoTextarea = document.getElementById('infoTextarea');
+  const commentTextarea = document.getElementById('commentTextarea');
+  const saveInfoBtn = document.getElementById('saveInfoBtn');
+  const modalCloseBtn = document.querySelector('.modal .close-btn');
+  const confirmModal = document.getElementById('confirmModal');
+  const confirmYesBtn = document.getElementById('confirmYes');
+  const confirmNoBtn = document.getElementById('confirmNo');
 
-/* ===== YouTube ===== */
-window.onYouTubeIframeAPIReady=function(){
-  isYoutubeApiReady=true;
-  player=new YT.Player('player',{height:'100%',width:'100%',videoId:'',playerVars:{autoplay:1,controls:1},events:{onStateChange:e=>{if(e.data===YT.PlayerState.ENDED) playNext();}}});
-};
+  // ===== 전역 상태 =====
+  const globalState = {
+    playlist: [],
+    shuffledOrder: [],
+    shuffleDeck: [],
+    notes: {},
+    songLikes: {},               // {videoId: {likeCount}}
+    myLikedSet: new Set(),       // Set<videoId> — users/{uid}/my_likes
+    likeSortMode: 0,             // 0 최신, 1 따봉많은순, 2 내따봉우선
+    isShuffleMode: false,
+    filterUploader: null,
+    videoId: '',
+    currentPlayingIndex: -1,
+    isBusterCallMode: false,
+    lastBusterCallTimestamp: 0,
+    busterCallCoolDown: 30 * 1000,
+    isPlayerVisible: true,
+    playbackTitle: null,
+    playbackArtist: null,
+  };
 
-/* ===== Helpers ===== */
-function showMessage(t,kind='info'){ msg.textContent=t; msg.style.background=(kind==='error')?'#fc8181':'#2d3748'; msg.style.display='block'; setTimeout(()=>msg.style.display='none',1200); }
-function isLiked(videoId){ return state.myLikedSet.has(videoId); }
-function likeCount(videoId){ return state.likeAgg[videoId]?.likeCount||0; }
-function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
-function readyLikes(){ return state.likeSnapReady && state.myLikeSnapReady; }
+  // 연타 방지
+  const pendingLike = new Set();
+  let likesLoaded = false;
+  let myLikesLoaded = false;
 
-/* ===== Auth then realtime ===== */
-firebase.auth().signInAnonymously().then(cred=>{
-  userId=cred.user.uid;
-  wireRealtime();
-  wireUI();
-});
+  // ===== YouTube API =====
+  window.onYouTubeIframeAPIReady = function() {
+    isYoutubeApiReady = true;
+    player = new YT.Player('player', {
+      height: '100%',
+      width: '100%',
+      videoId: '',
+      playerVars: { 'autoplay': 1, 'controls': 1 },
+      events: { 'onStateChange': onPlayerStateChange }
+    });
+  };
+  function onPlayerStateChange(event) {
+    if (event.data === YT.PlayerState.ENDED) playNext();
+  }
 
-/* ===== Realtime ===== */
-function wireRealtime(){
-  // playlist
-  db.collection('artifacts').doc(appId).collection('public').doc('data')
-    .collection('playlist_state').doc('main_playlist')
-    .onSnapshot(s=>{
-      const d=s.data()||{};
-      state.playlist=Array.isArray(d.playlist)?d.playlist:[];
+  // ===== UI 헬퍼 =====
+  function showMessage(message, type = 'info') {
+    messageBox.textContent = message;
+    messageBox.style.background = (type === 'error') ? '#fc8181' : '#2d3748';
+    messageBox.style.display = 'block';
+    setTimeout(() => { messageBox.style.display = 'none'; }, 1500);
+  }
+  function showConfirm(message) {
+    document.querySelector('#confirmModal p').textContent = message;
+    confirmModal.style.display = 'flex';
+    return new Promise((resolve) => {
+      confirmYesBtn.onclick = () => { confirmModal.style.display = 'none'; resolve(true); };
+      confirmNoBtn.onclick = () => { confirmModal.style.display = 'none'; resolve(false); };
+    });
+  }
+
+  // ===== 부팅 =====
+  async function boot() {
+    try { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); }
+    catch(e) { console.error(e); return; }
+    try {
+      const auth = firebase.auth();
+      const cred = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token)
+        ? await auth.signInWithCustomToken(__initial_auth_token)
+        : await auth.signInAnonymously();
+      userId = cred.user.uid; authed = true;
+    } catch(e){ console.error(e); return; }
+
+    startRealtime();
+    wireUI();
+  }
+
+  // ===== 실시간 리스너 =====
+  function startRealtime() {
+    // 버스터콜 상태
+    const busterCallRef = db.collection('artifacts').doc(appId).collection('public')
+      .doc('data').collection('buster_call_state').doc('main_state');
+    busterCallRef.onSnapshot(snap => {
+      if (!snap.exists) return;
+      const state = snap.data();
+      if (state?.lastBusterCallTimestamp) {
+        globalState.lastBusterCallTimestamp = state.lastBusterCallTimestamp.toMillis();
+        checkBusterCallCooldown();
+      }
+      if (state?.showBusterCall) {
+        busterCallOverlay.classList.add('show');
+        const endMillis = state.endTimestamp.toMillis();
+        const remainingTime = endMillis - Date.now();
+        dingdongSound.play().catch(()=>{});
+        const hide = () => {
+          busterCallOverlay.classList.remove('show');
+          busterCallRef.set({ showBusterCall: false }, { merge: true });
+        };
+        if (remainingTime > 0) setTimeout(hide, remainingTime); else hide();
+      } else {
+        busterCallOverlay.classList.remove('show');
+      }
+    });
+
+    // 재생목록
+    const playlistRef = db.collection('artifacts').doc(appId).collection('public')
+      .doc('data').collection('playlist_state').doc('main_playlist');
+    playlistRef.onSnapshot((snap) => {
+      if (!snap.exists) return;
+      const playlistData = snap.data() || {};
+      globalState.playlist = Array.isArray(playlistData.playlist) ? playlistData.playlist : [];
+      if (globalState.isShuffleMode) syncDeckWithVisible();
       renderList();
     });
 
-  // notes
-  db.collection('artifacts').doc(appId).collection('public').doc('data')
-    .collection('notes').onSnapshot(ss=>{
-      const m={}; ss.forEach(doc=>m[doc.id]=doc.data());
-      state.notes=m; renderList();
+    // 노트
+    const notesRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes');
+    notesRef.onSnapshot(snapshot => {
+      const newNotes = {};
+      snapshot.docs.forEach(doc => { newNotes[doc.id] = doc.data(); });
+      globalState.notes = newNotes;
+      renderList();
+      renderCurrentSongNotes();
     });
 
-  // like aggregate per song
-  db.collection('artifacts').doc(appId).collection('public').doc('data')
-    .collection('song_likes').onSnapshot(ss=>{
-      const m={}; ss.forEach(doc=>m[doc.id]=doc.data());
-      state.likeAgg=m; state.likeSnapReady=true;
-      renderList(); renderCurrentLikeUI();
-      if(state.isShuffle) rebuildDeck();
+    // 따봉 집계(총합)
+    const likesRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('song_likes');
+    likesRef.onSnapshot(snapshot => {
+      const newLikes = {};
+      snapshot.docs.forEach(doc => { newLikes[doc.id] = doc.data(); });
+      globalState.songLikes = newLikes;
+      likesLoaded = true;
+      renderList();
+      renderCurrentLikeUI();
+      if (globalState.isShuffleMode) rebuildShuffleDeck();
     });
 
-  // my likes set: users/{uid}/my_likes/*
-  db.collection('users').doc(userId).collection('my_likes')
-    .onSnapshot(ss=>{
-      const set=new Set();
-      ss.forEach(doc=>set.add(doc.id));
-      state.myLikedSet=set; state.myLikeSnapReady=true;
-      renderList(); renderCurrentLikeUI();
-      if(state.isShuffle) rebuildDeck();
+    // 내 따봉 세트(users/{uid}/my_likes)
+    const myLikesRef = db.collection('users').doc(userId).collection('my_likes');
+    myLikesRef.onSnapshot(snapshot => {
+      const s = new Set();
+      snapshot.docs.forEach(doc => s.add(doc.id));
+      globalState.myLikedSet = s;
+      myLikesLoaded = true;
+      renderList();
+      renderCurrentLikeUI();
+      if (globalState.isShuffleMode) rebuildShuffleDeck();
     });
-}
-
-/* ===== Visible list with sorting ===== */
-function getVisibleList(){
-  const list=[...state.playlist];
-  // 최신순 기본
-  list.sort((a,b)=>{
-    const ta=a.createdAt?.toDate?a.createdAt.toDate().getTime():a.createdAt?.getTime?.()||0;
-    const tb=b.createdAt?.toDate?b.createdAt.toDate().getTime():b.createdAt?.getTime?.()||0;
-    return tb-ta;
-  });
-  if(state.likeSortMode===1){
-    list.sort((a,b)=> likeCount(b.videoId)-likeCount(a.videoId));
-  }else if(state.likeSortMode===2){
-    const liked=[], others=[];
-    list.forEach(it=> (isLiked(it.videoId)?liked:others).push(it));
-    list.splice(0,list.length,...liked,...others);
   }
-  return list;
-}
 
-/* ===== Deck ===== */
-function rebuildDeck(){
-  const ids=getVisibleList().map(s=>s.videoId).filter(id=>id!==state.currentVid);
-  if(state.likeSortMode===2){
-    const a=ids.filter(isLiked);
-    const b=ids.filter(id=>!isLiked(id));
-    state.deck=[...shuffle(a),...shuffle(b)];
-  }else{
-    state.deck=shuffle(ids);
+  // ===== 상태 유틸 =====
+  function isNew(item) {
+    const t = item?.createdAt?.toDate ? item.createdAt.toDate().getTime() : item?.createdAt?.getTime?.();
+    if (!t) return false;
+    return (Date.now() - t) < 12 * 60 * 60 * 1000;
   }
-}
+  function isLiked(videoId){ return globalState.myLikedSet.has(videoId); }
+  function likeCount(videoId){ return globalState.songLikes[videoId]?.likeCount || 0; }
+  function readyLikes(){ return likesLoaded && myLikesLoaded; }
 
-/* ===== Render ===== */
-function renderList(){
-  listEl.innerHTML='';
-  const list=getVisibleList();
-  if(!list.length){ listEl.innerHTML='<div class="muted">재생목록 없음</div>'; renderCurrent(); return; }
+  // ===== 정렬 가시 목록 =====
+  function getVisibleList() {
+    let list = [...globalState.playlist];
 
-  list.forEach((item)=>{
-    const row=document.createElement('div'); row.className='item';
-    row.onclick=()=> play(item.videoId);
+    // 최신순 기본
+    list.sort((a,b) => {
+      const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : a.createdAt?.getTime();
+      const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : b.createdAt?.getTime();
+      return (timeB || 0) - (timeA || 0);
+    });
 
-    const left=document.createElement('div'); left.className='song-details';
-    const info=document.createElement('button'); info.className='info-icon'; info.innerHTML='&#x24D8;';
-    info.onclick=(e)=>{e.stopPropagation(); openInfo(item.videoId);};
-    const title=document.createElement('span'); title.textContent=`${item.artist} - ${item.title}`;
-    const uploaderBtn=document.createElement('button'); uploaderBtn.className='uploader-btn';
-    uploaderBtn.textContent=state.notes[item.videoId]?.uploader || '익명';
-    uploaderBtn.onclick=(e)=>{ e.stopPropagation(); sortByUploader(uploaderBtn.textContent); };
-    left.appendChild(info); left.appendChild(title); left.appendChild(uploaderBtn);
+    // 업로더 상단 정렬
+    if (globalState.filterUploader) {
+      const filtered = list.filter(item => (globalState.notes[item.videoId]?.uploader || '익명') === globalState.filterUploader);
+      const others = list.filter(item => (globalState.notes[item.videoId]?.uploader || '익명') !== globalState.filterUploader);
+      list = [...filtered, ...others];
+    }
 
-    const right=document.createElement('div');
-    const likeBtn=document.createElement('button'); likeBtn.className='like-btn';
-    likeBtn.disabled=!readyLikes();
-    likeBtn.textContent = isLiked(item.videoId) ? '👍' : '👍🏿';
-    likeBtn.onclick=async (e)=>{ e.stopPropagation(); await toggleLike(item.videoId, likeBtn); };
-    const cnt=document.createElement('span'); cnt.className='like-count'; cnt.textContent=likeCount(item.videoId);
-
-    right.appendChild(likeBtn); right.appendChild(cnt);
-
-    const del=document.createElement('button'); del.className='delete-btn'; del.innerHTML='&#x2715;';
-    del.onclick=async (e)=>{ e.stopPropagation(); if(await confirmDel()) removeFromPlaylist(item.videoId); };
-
-    row.appendChild(left); row.appendChild(right); row.appendChild(del);
-    listEl.appendChild(row);
-  });
-
-  renderCurrent();
-}
-
-function renderCurrent(){
-  const v=state.currentVid;
-  if(!v){ currentSongInfo.innerHTML='<span class="muted">현재 재생 없음</span>'; renderCurrentLikeUI(); return; }
-  const meta=state.playlist.find(s=>s.videoId===v);
-  if(meta){
-    const btn=`<button class="current-info-btn" onclick="openInfo('${v}')">&#x24D8;</button>`;
-    currentSongInfo.innerHTML=btn+`<span style="font-weight:bold">${meta.title}</span><span class="muted" style="margin-left:6px"> - ${meta.artist}</span>`;
-  }else{
-    currentSongInfo.innerHTML='<span class="muted">현재 재생 없음</span>';
+    // 따봉 정렬
+    if (globalState.likeSortMode === 1) {
+      list.sort((a, b) => likeCount(b.videoId) - likeCount(a.videoId));
+    } else if (globalState.likeSortMode === 2) {
+      const liked = [], others = [];
+      list.forEach(item => (isLiked(item.videoId) ? liked : others).push(item));
+      list = [...liked, ...others];
+    }
+    return list;
   }
-  renderCurrentLikeUI();
-}
 
-function renderCurrentLikeUI(){
-  const v=state.currentVid;
-  const mine = v ? isLiked(v) : false;
-  currentLikeBtn.disabled = !readyLikes() || !v;
-  currentLikeBtn.textContent = mine ? '👍' : '👍🏿';
-  currentLikeBtn.onclick = async ()=>{ if(!readyLikes()||!v) return; await toggleLike(v, currentLikeBtn); };
-  currentLikeCount.textContent = v ? likeCount(v) : 0;
-}
+  // ===== 셔플 덱 =====
+  function fyShuffle(arr){
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+  function rebuildShuffleDeck(){
+    const visibleIds=getVisibleList().map(s=>s.videoId);
+    const base=visibleIds.filter(id=>id!==globalState.videoId);
+    if(globalState.likeSortMode===2){
+      const a=base.filter(id=>isLiked(id));
+      const b=base.filter(id=>!isLiked(id));
+      globalState.shuffleDeck=[...fyShuffle(a), ...fyShuffle(b)];
+    }else{
+      globalState.shuffleDeck=fyShuffle(base);
+    }
+  }
+  function syncDeckWithVisible(){
+    const visibleIds=new Set(getVisibleList().map(s=>s.videoId));
+    globalState.shuffleDeck=globalState.shuffleDeck.filter(id=>visibleIds.has(id)&&id!==globalState.videoId);
+    const toAdd=[...visibleIds].filter(id=>id!==globalState.videoId && !globalState.shuffleDeck.includes(id));
+    if(toAdd.length) globalState.shuffleDeck.push(...fyShuffle(toAdd));
+  }
 
-/* ===== Like toggle: users/{uid}/my_likes/{vid} ↔ song_likes/{vid}.likeCount ===== */
-async function toggleLike(videoId, btnEl){
-  if(!userId) return;
-  btnEl.disabled=true; // 연타 방지
+  // ===== UI 행위 =====
+  function filterByUploader(uploaderName) {
+    if (globalState.filterUploader === uploaderName) {
+      globalState.filterUploader = null;
+      showMessage("필터 해제");
+    } else {
+      globalState.filterUploader = uploaderName;
+      showMessage(`${uploaderName}님 곡 상단 정렬`);
+    }
+    if (globalState.isShuffleMode) rebuildShuffleDeck();
+    renderList();
+  }
 
-  const aggRef = db.collection('artifacts').doc(appId).collection('public').doc('data')
-                   .collection('song_likes').doc(videoId);
-  const myRef  = db.collection('users').doc(userId).collection('my_likes').doc(videoId);
+  function renderList() {
+    listEl.innerHTML = '';
+    const playlistToRender = getVisibleList();
+    if (!playlistToRender.length) {
+      listEl.innerHTML = '<div class="muted">재생목록이 비어있습니다.</div>';
+      renderCurrentSongInfo();
+      return;
+    }
 
-  try{
-    await db.runTransaction(async tr=>{
-      const [aggSnap,mySnap]=await Promise.all([tr.get(aggRef), tr.get(myRef)]);
-      let count = aggSnap.exists ? (aggSnap.data().likeCount||0) : 0;
+    playlistToRender.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.dataset.videoId = item.videoId;
+      div.dataset.index = index;
 
-      if(mySnap.exists){
-        // 취소
-        count = Math.max(0, count-1);
-        tr.delete(myRef);
-        tr.set(aggRef,{ likeCount:count, updatedAt:firebase.firestore.FieldValue.serverTimestamp() },{merge:true});
-      }else{
-        // 신규 좋아요
-        count = count+1;
-        tr.set(myRef,{ likedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        tr.set(aggRef,{ likeCount:count, updatedAt:firebase.firestore.FieldValue.serverTimestamp() },{merge:true});
+      const songDetails = document.createElement('div');
+      songDetails.className = 'song-details';
+
+      const infoIcon = document.createElement('button');
+      infoIcon.className = 'info-icon';
+      infoIcon.innerHTML = '&#x24D8;';
+      infoIcon.addEventListener('click', (e) => { e.stopPropagation(); openInfoModal(item.videoId); });
+      songDetails.appendChild(infoIcon);
+
+      const titleSpan = document.createElement('span');
+      titleSpan.textContent = `${item.artist} - ${item.title}`;
+      songDetails.appendChild(titleSpan);
+
+      if (isNew(item)) {
+        const newTag = document.createElement('span');
+        newTag.className = 'new-tag';
+        newTag.textContent = 'new';
+        titleSpan.prepend(newTag, ' ');
       }
+
+      // 업로더 버튼
+      const uploader = globalState.notes[item.videoId]?.uploader || '익명';
+      const uploaderBtn = document.createElement('button');
+      uploaderBtn.className = 'uploader-btn';
+      uploaderBtn.textContent = uploader;
+      uploaderBtn.addEventListener('click', (e) => { e.stopPropagation(); filterByUploader(uploader); });
+      songDetails.appendChild(uploaderBtn);
+
+      // 좋아요 버튼 + 카운트
+      const likeWrapper = document.createElement('div');
+
+      const likeBtn = document.createElement('button');
+      likeBtn.className = 'like-btn';
+      likeBtn.disabled = !readyLikes();
+      likeBtn.textContent = isLiked(item.videoId) ? '👍' : '👍🏿';
+      likeBtn.addEventListener('click', async (e) => { e.stopPropagation(); await handleLike(item.videoId, likeBtn); });
+
+      const countSpan = document.createElement('span');
+      countSpan.className = 'like-count';
+      countSpan.textContent = likeCount(item.videoId);
+
+      likeWrapper.appendChild(likeBtn);
+      likeWrapper.appendChild(countSpan);
+
+      // 삭제
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.innerHTML = '&#x2715;';
+      deleteBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const shouldDelete = await showConfirm("정말로 삭제하시겠습니까?");
+        if (shouldDelete) {
+          const newPlaylist = [...globalState.playlist].filter(s => s.videoId !== item.videoId);
+          updatePlaylist(newPlaylist);
+        }
+      });
+
+      div.appendChild(songDetails);
+      div.appendChild(likeWrapper);
+      div.appendChild(deleteBtn);
+
+      div.addEventListener('click', () => {
+        if (globalState.isBusterCallMode) {
+          const now = Date.now();
+          const last = globalState.lastBusterCallTimestamp;
+          if (now - last > globalState.busterCallCoolDown) {
+            busterCall(item.videoId);
+            globalState.isBusterCallMode = false;
+            busterCallToggleBtn.classList.remove('active');
+          } else {
+            const remaining = Math.ceil((globalState.busterCallCoolDown - (now - last)) / 1000);
+            showMessage(`버스터콜은 ${remaining}초 후 가능`, 'error');
+            globalState.isBusterCallMode = false;
+            busterCallToggleBtn.classList.remove('active');
+          }
+        } else {
+          const activeList = getVisibleList();
+          const songIndex = activeList.findIndex(song => song.videoId === item.videoId);
+          if (songIndex !== -1) {
+            playVideo(songIndex);
+            showMessage("해당 곡 재생");
+          }
+        }
+      });
+
+      listEl.appendChild(div);
     });
-    // UI는 스냅샷으로만 갱신. 여기서 직접 증감하지 않음.
-  }catch(e){
-    console.error(e);
-    showMessage('좋아요 처리 실패','error');
-  }finally{
-    btnEl.disabled=false;
+
+    // 현재 재생 보정
+    const currentSongIsInPlaylist = playlistToRender.some(item => item.videoId === globalState.videoId);
+    if (globalState.videoId && !currentSongIsInPlaylist && playlistToRender.length > 0) {
+      let nextIndex = globalState.currentPlayingIndex;
+      if (nextIndex >= playlistToRender.length) nextIndex = playlistToRender.length - 1;
+      playVideo(nextIndex);
+    } else if (playlistToRender.length > 0 && globalState.currentPlayingIndex === -1) {
+      playVideo(0);
+    }
+
+    renderCurrentSongInfo();
   }
-}
 
-/* ===== Player ===== */
-function play(videoId){
-  if(!isYoutubeApiReady) return;
-  player.loadVideoById(videoId);
-  state.currentVid=videoId;
-  state.currentIdx = getVisibleList().findIndex(s=>s.videoId===videoId);
-  // 셔플 중이면 현재 곡 제거
-  state.deck = state.deck.filter(id=>id!==videoId);
-  renderCurrent();
-}
-function playNext(){
-  if(state.isShuffle){
-    if(state.deck.length===0) rebuildDeck();
-    const next=state.deck.shift();
-    if(next){ play(next); }
-    return;
+  // ===== 좋아요 토글 (유저별 1회, 재클릭 취소) =====
+  async function handleLike(videoId, btnEl){
+    if(!userId){ showMessage("로그인 필요", 'error'); return; }
+    if(pendingLike.has(videoId)) return;
+    pendingLike.add(videoId);
+    btnEl && (btnEl.disabled = true);
+
+    const aggRef = db.collection('artifacts').doc(appId).collection('public').doc('data')
+      .collection('song_likes').doc(videoId);
+    const myRef = db.collection('users').doc(userId).collection('my_likes').doc(videoId);
+
+    try{
+      await db.runTransaction(async (tr)=>{
+        const [aggSnap, mySnap] = await Promise.all([tr.get(aggRef), tr.get(myRef)]);
+        let count = aggSnap.exists ? (aggSnap.data().likeCount || 0) : 0;
+
+        if(mySnap.exists){
+          // 취소
+          count = Math.max(0, count - 1);
+          tr.delete(myRef);
+          tr.set(aggRef, { likeCount: count, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        } else {
+          // 신규 좋아요
+          count = count + 1;
+          tr.set(myRef, { likedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          tr.set(aggRef, { likeCount: count, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        }
+      });
+      // UI는 스냅샷으로만 갱신
+    }catch(e){
+      console.error(e);
+      showMessage("좋아요 실패: "+e.message, 'error');
+    }finally{
+      pendingLike.delete(videoId);
+      btnEl && (btnEl.disabled = false);
+    }
   }
-  const list=getVisibleList(); if(!list.length) return;
-  const idx=(state.currentIdx+1)%list.length;
-  play(list[idx].videoId);
-}
 
-/* ===== UI wiring ===== */
-function wireUI(){
-  likeSortBtn.onclick=()=>{
-    state.likeSortMode=(state.likeSortMode+1)%3;
-    likeSortBtn.classList.remove('most-liked','user-liked');
-    if(state.likeSortMode===1) likeSortBtn.classList.add('most-liked');
-    if(state.likeSortMode===2) likeSortBtn.classList.add('user-liked');
-    renderList(); if(state.isShuffle) rebuildDeck();
-  };
-  shuffleBtn.onclick=()=>{
-    state.isShuffle=!state.isShuffle;
-    shuffleBtn.classList.toggle('active',state.isShuffle);
-    if(state.isShuffle){ rebuildDeck(); showMessage(state.likeSortMode===2?'내 좋아요 먼저 셔플':'전체 셔플'); }
-    else showMessage('셔플 해제');
-  };
-  prevBtn.onclick=()=>showMessage('이전 곡 미지원(일반 재생만 사용)');
-  nextBtn.onclick=()=>playNext();
-}
+  // ===== 현재 곡 좋아요 UI =====
+  function renderCurrentLikeUI(){
+    const vid = globalState.videoId;
+    const mine = vid ? isLiked(vid) : false;
+    currentLikeBtn.disabled = !(likesLoaded && myLikesLoaded) || !vid;
+    currentLikeBtn.textContent = mine ? '👍' : '👍🏿';
+    currentLikeBtn.onclick = async ()=>{ if(!(likesLoaded && myLikesLoaded) || !vid) return; await handleLike(vid, currentLikeBtn); };
+    currentLikeCountEl.textContent = vid ? likeCount(vid) : 0;
+  }
 
-/* ===== Misc ===== */
-function sortByUploader(name){
-  const list=[...state.playlist];
-  list.sort((a,b)=>{
-    const ua=(state.notes[a.videoId]?.uploader||'익명')===name?0:1;
-    const ub=(state.notes[b.videoId]?.uploader||'익명')===name?0:1;
-    return ua-ub;
-  });
-  state.playlist=list; renderList();
-}
-async function confirmDel(){
-  return window.confirm('정말로 삭제하시겠습니까?');
-}
-function removeFromPlaylist(videoId){
-  const list=state.playlist.filter(s=>s.videoId!==videoId);
-  db.collection('artifacts').doc(appId).collection('public').doc('data')
-    .collection('playlist_state').doc('main_playlist')
-    .set({playlist:list,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-}
+  // ===== 현재 곡 정보 =====
+  function updatePlayingSong(videoId) {
+    const activeList = getVisibleList();
+    const idx = activeList.findIndex(item => item.videoId === videoId);
+    if (idx !== -1) { globalState.currentPlayingIndex = idx; globalState.videoId = videoId; }
+    else { globalState.currentPlayingIndex = -1; globalState.videoId = videoId; }
+    renderCurrentSongInfo();
+  }
 
-/* ===== Info modal stubs ===== */
-function openInfo(videoId){ /* 필요 시 기존 모달 로직 재결합 */ }
+  function renderCurrentSongInfo() {
+    const visible = getVisibleList();
+    const songToDisplay = visible.find(song => song.videoId === globalState.videoId);
 
-/* start */
+    if (songToDisplay) {
+      const infoButton = `<button class="current-info-btn" onclick="openInfoModal('${songToDisplay.videoId}')">&#x24D8;</button>`;
+      const songText = `<span style="font-weight: bold;">${songToDisplay.title}</span><span class="muted" style="margin-left: 5px;"> - ${songToDisplay.artist}</span>`;
+      document.getElementById('currentSongInfo').innerHTML = infoButton + songText;
+    } else if (globalState.videoId && (globalState.playbackTitle || globalState.playbackArtist)) {
+      const t = globalState.playbackTitle || '제목 미상';
+      const a = globalState.playbackArtist || '아티스트 미상';
+      const infoButton = `<button class="current-info-btn" onclick="openInfoModal('${globalState.videoId}')">&#x24D8;</button>`;
+      const songText = `<span style="font-weight: bold;">${t}</span><span class="muted" style="margin-left: 5px;"> - ${a}</span>`;
+      document.getElementById('currentSongInfo').innerHTML = infoButton + songText;
+    } else {
+      document.getElementById('currentSongInfo').innerHTML = '<span class="muted">현재 재생 중인 곡이 없습니다.</span>';
+    }
+    renderCurrentLikeUI();
+    renderCurrentSongNotes();
+  }
+
+  async function renderCurrentSongNotes() {
+    currentSongNotesEl.innerHTML = '<span class="muted">정보를 불러오는 중...</span>';
+    const videoId = globalState.videoId;
+    if (!videoId || !authed) { currentSongNotesEl.innerHTML = '<span class="muted">작성된 정보가 없습니다.</span>'; return; }
+
+    const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(videoId);
+    try {
+      const docSnap = await docRef.get();
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        const uploader = data.uploader || '알 수 없음';
+        const info = data.info || '작성된 정보가 없습니다.';
+        const comment = data.comment || '작성된 댓글이 없습니다.';
+        currentSongNotesEl.innerHTML = `
+          <p><strong>올린 사람:</strong> ${uploader}</p>
+          <p><strong>노래 정보:</strong> ${info}</p>
+          <p><strong>댓글:</strong> ${comment}</p>
+        `;
+      } else {
+        currentSongNotesEl.innerHTML = '<span class="muted">작성된 정보가 없습니다.</span>';
+      }
+    } catch(e) {
+      console.error(e);
+      currentSongNotesEl.innerHTML = '<span class="muted">정보를 불러오는 데 실패했습니다.</span>';
+    }
+  }
+
+  // ===== 플레이리스트 저장 =====
+  let playlistSaveTimer = null;
+  function updatePlaylist(newPlaylist) {
+    globalState.playlist = newPlaylist;
+    savePlaylistState();
+    if (globalState.isShuffleMode) syncDeckWithVisible();
+  }
+  function savePlaylistState() {
+    if (!authed) return;
+    if (playlistSaveTimer) clearTimeout(playlistSaveTimer);
+    playlistSaveTimer = setTimeout(async () => {
+      try {
+        const ref = db.collection('artifacts').doc(appId).collection('public')
+          .doc('data').collection('playlist_state').doc('main_playlist');
+        const validPlaylist = globalState.playlist.map(item => ({ ...item, createdAt: item.createdAt || new Date() }));
+        await ref.set({ playlist: validPlaylist, lastUpdatedBy: userId, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      } catch (e) { console.error(e); }
+    }, 300);
+  }
+
+  // ===== 재생 =====
+  function playVideo(index) {
+    const list = getVisibleList();
+    if (!list.length) return;
+    let i = Math.max(0, Math.min(index, list.length - 1));
+    const song = list[i];
+    if (song && song.videoId && isYoutubeApiReady) {
+      player.loadVideoById(song.videoId);
+      updatePlayingSong(song.videoId);
+      globalState.playbackTitle = song.title;
+      globalState.playbackArtist = song.artist;
+      if (globalState.isShuffleMode) {
+        globalState.shuffleDeck = globalState.shuffleDeck.filter(id => id !== song.videoId);
+      }
+    }
+  }
+  function playNext() {
+    if (globalState.isShuffleMode) {
+      if (globalState.shuffleDeck.length === 0) rebuildShuffleDeck();
+      const nextId = globalState.shuffleDeck.shift();
+      if (nextId) {
+        const meta = getVisibleList().find(s => s.videoId === nextId);
+        if (isYoutubeApiReady) player.loadVideoById(nextId);
+        if (meta){ globalState.playbackTitle=meta.title; globalState.playbackArtist=meta.artist; }
+        updatePlayingSong(nextId);
+        return;
+      }
+    }
+    const list = getVisibleList();
+    if (!list.length) return;
+    const idx = (globalState.currentPlayingIndex + 1) % list.length;
+    playVideo(idx);
+  }
+  function playPrev() {
+    if (globalState.isShuffleMode) { showMessage("셔플 모드에서 이전 곡은 지원하지 않습니다.", 'error'); return; }
+    const list = getVisibleList();
+    if (!list.length) return;
+    const idx = (globalState.currentPlayingIndex - 1 + list.length) % list.length;
+    playVideo(idx);
+  }
+
+  // ===== 토글들 =====
+  function togglePlayerVisibility() {
+    globalState.isPlayerVisible = !globalState.isPlayerVisible;
+    togglePlayerBtn.classList.toggle('active', !globalState.isPlayerVisible);
+    if (globalState.isPlayerVisible) { playerContainer.style.height = 'auto'; playerContainer.style.opacity = '1'; }
+    else { playerContainer.style.height = '0'; playerContainer.style.opacity = '0'; }
+  }
+
+  function checkBusterCallCooldown() {
+    const now = Date.now();
+    const remain = globalState.lastBusterCallTimestamp + globalState.busterCallCoolDown - now;
+    if (remain > 0) {
+      const sec = Math.ceil(remain / 1000);
+      busterCallToggleBtn.disabled = true;
+      busterCallToggleBtn.textContent = `버스터콜 (${sec}초)`;
+      setTimeout(checkBusterCallCooldown, 1000);
+    } else {
+      busterCallToggleBtn.disabled = false;
+      busterCallToggleBtn.textContent = '버스터콜';
+    }
+  }
+
+  function busterCall(videoId) {
+    if (!authed) { showMessage("로그인되지 않았습니다.", 'error'); return; }
+    try {
+      const inList = globalState.playlist.find(s => s.videoId === videoId);
+      const title = inList?.title || globalState.playbackTitle || '';
+      const artist = inList?.artist || globalState.playbackArtist || '';
+
+      db.collection('artifacts').doc(appId).collection('public')
+        .doc('data').collection('playback_state').doc('main_state')
+        .set({
+          videoId,
+          timestamp: 0,
+          title,
+          artist,
+          lastUpdatedBy: userId,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+      globalState.playbackTitle = title || null;
+      globalState.playbackArtist = artist || null;
+
+      const endTimestamp = firebase.firestore.Timestamp.fromMillis(Date.now() + 10000);
+      db.collection('artifacts').doc(appId).collection('public')
+        .doc('data').collection('buster_call_state').doc('main_state')
+        .set({
+          showBusterCall: true,
+          lastBusterCallTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: userId,
+          videoId,
+          endTimestamp
+        }, { merge: true });
+
+      if (isYoutubeApiReady) {
+        player.loadVideoById(videoId);
+        player.playVideo();
+      }
+
+      globalState.videoId = videoId;
+      const visibleList = getVisibleList();
+      const newIndex = visibleList.findIndex(s => s.videoId === videoId);
+      globalState.currentPlayingIndex = (newIndex !== -1) ? newIndex : 0;
+      renderCurrentSongInfo();
+
+      if (globalState.isShuffleMode) {
+        globalState.shuffleDeck = globalState.shuffleDeck.filter(id => id !== videoId);
+      }
+
+    } catch (e) {
+      console.error(e);
+      showMessage("버스터콜 실패: " + e.message, 'error');
+    }
+  }
+
+  // ===== 모달 =====
+  function openInfoModal(videoId) {
+    const songItem = globalState.playlist.find(item => item.videoId === videoId);
+    if (songItem) { songTitleInput.value = songItem.title; artistInput.value = songItem.artist; }
+    else { songTitleInput.value = globalState.playbackTitle || ''; artistInput.value = globalState.playbackArtist || ''; }
+    const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(videoId);
+    docRef.get().then(docSnap => {
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        uploaderInput.value = data.uploader || '';
+        infoTextarea.value = data.info || '';
+        commentTextarea.value = data.comment || '';
+      } else {
+        uploaderInput.value = ''; infoTextarea.value = ''; commentTextarea.value = '';
+      }
+    }).catch(e => { console.error(e); uploaderInput.value = ''; infoTextarea.value = 'Failed to load note.'; commentTextarea.value = ''; });
+    infoModal.style.display = 'flex';
+    window.currentInfoVideoId = videoId;
+  }
+  function closeInfoModal() { infoModal.style.display = 'none'; window.currentInfoVideoId = null; }
+  async function saveInfo() {
+    const currentInfoVideoId = window.currentInfoVideoId;
+    if (!currentInfoVideoId || !authed) return;
+    const newTitle = songTitleInput.value.trim();
+    const newArtist = artistInput.value.trim();
+
+    const newPlaylist = [...globalState.playlist];
+    const songIndex = newPlaylist.findIndex(item => item.videoId === currentInfoVideoId);
+    if (songIndex !== -1) {
+      newPlaylist[songIndex].title = newTitle;
+      newPlaylist[songIndex].artist = newArtist;
+      updatePlaylist(newPlaylist);
+    } else {
+      if (globalState.videoId === currentInfoVideoId) {
+        globalState.playbackTitle = newTitle || globalState.playbackTitle;
+        globalState.playbackArtist = newArtist || globalState.playbackArtist;
+        renderCurrentSongInfo();
+      }
+    }
+
+    const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(currentInfoVideoId);
+    try {
+      await docRef.set({
+        uploader: uploaderInput.value.trim(),
+        info: infoTextarea.value.trim(),
+        comment: commentTextarea.value.trim(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      showMessage("노트 저장", 'ok');
+      closeInfoModal();
+    } catch(e) {
+      console.error(e);
+      showMessage("노트 저장 실패: " + e.message, 'error');
+    }
+  }
+
+  // ===== YouTube 유틸 =====
+  async function fetchVideoDetails(videoId) {
+    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`;
+    const response = await fetch(apiUrl);
+    if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    const data = await response.json();
+    if (data.items && data.items.length > 0) {
+      const s = data.items[0].snippet;
+      return { title: s.title, artist: s.channelTitle };
+    }
+    throw new Error("Failed to find video information.");
+  }
+  function getVideoId(url) {
+    if (url.length === 11 && !url.includes(' ')) return url;
+    url = url.replace('music.youtube.com', 'www.youtube.com');
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = url.match(regex);
+    return (match && match[1]) ? match[1] : null;
+  }
+  async function searchYouTubeAndAddSong(query) {
+    if (!query) { showMessage("검색어를 입력", 'error'); return; }
+    const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`;
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      const data = await response.json();
+      if (data.items && data.items.length > 0) {
+        const item = data.items[0];
+        const videoId = item.id.videoId;
+        const title = item.snippet.title;
+        const artist = item.snippet.channelTitle;
+        const newPlaylist = [...globalState.playlist, { title, artist, videoId, createdAt: new Date() }];
+        updatePlaylist(newPlaylist);
+        urlInput.value = '';
+        showMessage('추가 완료', 'ok');
+      } else {
+        throw new Error("검색 결과 없음");
+      }
+    } catch (e) {
+      console.error(e);
+      showMessage("검색 실패. 수동 입력 전환", 'error');
+      manualInputDiv.style.display = 'block';
+      addBtn.textContent = '수동 추가';
+    } finally {
+      addBtn.disabled = false;
+    }
+  }
+
+  // ===== 버튼 연결 =====
+  function wireUI() {
+    addBtn.addEventListener('click', async () => {
+      const inputVal = urlInput.value.trim();
+      addBtn.textContent = '불러오는 중...';
+      addBtn.disabled = true;
+
+      const manualMode = manualInputDiv.style.display === 'block' && addBtn.textContent === '수동 추가';
+      if (manualMode) {
+        const videoId = getVideoId(inputVal);
+        const title = manualTitleInput.value.trim();
+        const artist = manualArtistInput.value.trim();
+        if (!videoId) { showMessage("유효한 링크/ID 필요", 'error'); addBtn.disabled=false; addBtn.textContent='추가'; return; }
+        if (!title || !artist) { showMessage("제목/아티스트 입력", 'error'); addBtn.disabled=false; addBtn.textContent='추가'; return; }
+        const newPlaylist = [...globalState.playlist, { title, artist, videoId, createdAt: new Date() }];
+        updatePlaylist(newPlaylist);
+        urlInput.value = ''; manualTitleInput.value = ''; manualArtistInput.value = '';
+        manualInputDiv.style.display = 'none'; addBtn.textContent = '추가';
+        showMessage('추가 완료', 'ok');
+      } else {
+        const videoId = getVideoId(inputVal);
+        if (videoId) {
+          try {
+            const videoDetails = await fetchVideoDetails(videoId);
+            const newPlaylist = [...globalState.playlist, { title: videoDetails.title, artist: videoDetails.artist, videoId, createdAt: new Date() }];
+            updatePlaylist(newPlaylist);
+            urlInput.value = '';
+            showMessage('추가 완료', 'ok');
+          } catch (e) {
+            console.error(e);
+            showMessage("영상 정보 실패. 수동 입력 전환", 'error');
+            manualInputDiv.style.display = 'block';
+            addBtn.textContent = '수동 추가';
+          }
+        } else {
+          await searchYouTubeAndAddSong(inputVal);
+        }
+      }
+      addBtn.disabled = false;
+      addBtn.textContent = '추가';
+    });
+
+    shuffleBtn.addEventListener('click', () => {
+      globalState.isShuffleMode = !globalState.isShuffleMode;
+      shuffleBtn.classList.toggle('active', globalState.isShuffleMode);
+      if (globalState.isShuffleMode) {
+        rebuildShuffleDeck();
+        showMessage(globalState.likeSortMode===2 ? "내 좋아요 먼저 셔플" : "전체 셔플");
+      } else {
+        showMessage("셔플 해제");
+      }
+      updatePlayingSong(globalState.videoId);
+    });
+
+    // 따봉 정렬 3단계
+    likeSortBtn.addEventListener('click', () => {
+      globalState.likeSortMode = (globalState.likeSortMode + 1) % 3; // 0->1->2->0
+      likeSortBtn.classList.remove('most-liked','user-liked');
+      if (globalState.likeSortMode === 1) {
+        likeSortBtn.classList.add('most-liked');
+        showMessage("따봉 많은 순");
+      } else if (globalState.likeSortMode === 2) {
+        likeSortBtn.classList.add('user-liked');
+        showMessage("내가 누른 곡 우선");
+      } else {
+        showMessage("최신순");
+      }
+      // 셔플 덱 갱신
+      if (globalState.isShuffleMode) rebuildShuffleDeck();
+      renderList();
+      updatePlayingSong(globalState.videoId);
+    });
+
+    busterCallToggleBtn.addEventListener('click', () => {
+      globalState.isBusterCallMode = !globalState.isBusterCallMode;
+      busterCallToggleBtn.classList.toggle('active', globalState.isBusterCallMode);
+      busterCallToggleBtn.textContent = "버스터콜";
+      showMessage(globalState.isBusterCallMode ? "재생목록을 눌러 버스터콜 시작" : "버스터콜 해제", 'info');
+    });
+
+    prevSongBtn.addEventListener('click', () => { playPrev(); });
+    nextSongBtn.addEventListener('click', () => { playNext(); });
+    togglePlayerBtn.addEventListener('click', togglePlayerVisibility);
+
+    modalCloseBtn.addEventListener('click', closeInfoModal);
+    saveInfoBtn.addEventListener('click', saveInfo);
+    window.addEventListener('click', (event) => { if (event.target === infoModal) closeInfoModal(); });
+  }
+
+  // ===== 버스터콜 보조 =====
+  function checkBusterCallCooldown() {
+    const now = Date.now();
+    const remain = globalState.lastBusterCallTimestamp + globalState.busterCallCoolDown - now;
+    if (remain > 0) {
+      const sec = Math.ceil(remain / 1000);
+      busterCallToggleBtn.disabled = true;
+      busterCallToggleBtn.textContent = `버스터콜 (${sec}초)`;
+      setTimeout(checkBusterCallCooldown, 1000);
+    } else {
+      busterCallToggleBtn.disabled = false;
+      busterCallToggleBtn.textContent = '버스터콜';
+    }
+  }
+
+  // ===== 전역 노출 =====
+  window.openInfoModal = openInfoModal;
+
+  // ===== 시작 =====
+  window.onload = function() { boot(); };
 </script>
 </body>
 </html>
