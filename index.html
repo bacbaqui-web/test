@@ -29,10 +29,14 @@
     .item .delete-btn { background: none; border: none; color: #fc8181; cursor: pointer; font-size: 1.2em; line-height: 1; margin-left: 10px; opacity: 0.7; transition: opacity 0.2s; }
     .item .delete-btn:hover { opacity: 1; }
     .item .info-icon { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 1.2em; margin-right: 5px; }
-    .item .like-btn { background: none; border: none; color: inherit; cursor: pointer; font-size: 1.2em; margin-right: 5px; transition: transform .05s ease; }
-    .item .like-btn:active { transform: scale(0.96); }
+
+    .item .like-btn, .current-like .like-btn { background: transparent; border: none; color: inherit; cursor: pointer; font-size: 1.2em; margin-right: 5px; transition: transform .05s ease; }
+    .item .like-btn:active, .current-like .like-btn:active { transform: scale(0.96); }
     .like-count { font-size: 0.9em; color: #a0aec0; margin-left: -5px; margin-right: 5px;}
-    .uploader-btn { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 0.9em; margin-right: 5px; padding: 0; }
+
+    .uploader-btn { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 0.9em; padding: 0; }
+    .right-box { display: flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 180px; }
+
     .video-player { aspect-ratio: 16 / 9; width: 100%; max-width: 800px; margin: 8px auto; border-radius: 8px; overflow: hidden; position: relative; }
     .main-title { text-align: center; }
     .sub-title { text-align: center; font-size: 0.9em; margin-top: -15px; color: #a0aec0; }
@@ -219,7 +223,6 @@
   // ===== 전역 상태 =====
   const globalState = {
     playlist: [],
-    shuffledOrder: [],
     shuffleDeck: [],
     notes: {},
     songLikes: {},               // {videoId: {likeCount}}
@@ -237,7 +240,7 @@
     playbackArtist: null,
   };
 
-  // 연타 방지
+  // 연타 방지·로드 상태
   const pendingLike = new Set();
   let likesLoaded = false;
   let myLikesLoaded = false;
@@ -428,19 +431,30 @@
     if(toAdd.length) globalState.shuffleDeck.push(...fyShuffle(toAdd));
   }
 
-  // ===== UI 행위 =====
-  function filterByUploader(uploaderName) {
+  // ===== 업로더 클릭: 정렬 + 초기화 =====
+  function filterByUploader(uploaderName, opts={resetSort:false, resetShuffle:false}) {
     if (globalState.filterUploader === uploaderName) {
       globalState.filterUploader = null;
-      showMessage("필터 해제");
+      showMessage("업로더 정렬 해제");
     } else {
       globalState.filterUploader = uploaderName;
       showMessage(`${uploaderName}님 곡 상단 정렬`);
     }
-    if (globalState.isShuffleMode) rebuildShuffleDeck();
+
+    if (opts.resetSort) {
+      globalState.likeSortMode = 0;
+      likeSortBtn.classList.remove('most-liked','user-liked');
+    }
+    if (opts.resetShuffle) {
+      globalState.isShuffleMode = false;
+      shuffleBtn.classList.remove('active');
+      globalState.shuffleDeck = [];
+    }
+
     renderList();
   }
 
+  // ===== 리스트 렌더 =====
   function renderList() {
     listEl.innerHTML = '';
     const playlistToRender = getVisibleList();
@@ -456,6 +470,7 @@
       div.dataset.videoId = item.videoId;
       div.dataset.index = index;
 
+      // 좌측: 제목
       const songDetails = document.createElement('div');
       songDetails.className = 'song-details';
 
@@ -476,16 +491,18 @@
         titleSpan.prepend(newTag, ' ');
       }
 
-      // 업로더 버튼
+      // 우측: 업로더 → 좋아요 → 카운트 → 삭제
+      const rightBox = document.createElement('div');
+      rightBox.className = 'right-box';
+
       const uploader = globalState.notes[item.videoId]?.uploader || '익명';
       const uploaderBtn = document.createElement('button');
       uploaderBtn.className = 'uploader-btn';
       uploaderBtn.textContent = uploader;
-      uploaderBtn.addEventListener('click', (e) => { e.stopPropagation(); filterByUploader(uploader); });
-      songDetails.appendChild(uploaderBtn);
-
-      // 좋아요 버튼 + 카운트
-      const likeWrapper = document.createElement('div');
+      uploaderBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        filterByUploader(uploader, { resetSort: true, resetShuffle: true });
+      });
 
       const likeBtn = document.createElement('button');
       likeBtn.className = 'like-btn';
@@ -497,10 +514,6 @@
       countSpan.className = 'like-count';
       countSpan.textContent = likeCount(item.videoId);
 
-      likeWrapper.appendChild(likeBtn);
-      likeWrapper.appendChild(countSpan);
-
-      // 삭제
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'delete-btn';
       deleteBtn.innerHTML = '&#x2715;';
@@ -513,9 +526,13 @@
         }
       });
 
+      rightBox.appendChild(uploaderBtn);
+      rightBox.appendChild(likeBtn);
+      rightBox.appendChild(countSpan);
+      rightBox.appendChild(deleteBtn);
+
       div.appendChild(songDetails);
-      div.appendChild(likeWrapper);
-      div.appendChild(deleteBtn);
+      div.appendChild(rightBox);
 
       div.addEventListener('click', () => {
         if (globalState.isBusterCallMode) {
@@ -585,7 +602,6 @@
           tr.set(aggRef, { likeCount: count, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
         }
       });
-      // UI는 스냅샷으로만 갱신
     }catch(e){
       console.error(e);
       showMessage("좋아요 실패: "+e.message, 'error');
@@ -723,7 +739,7 @@
     playVideo(idx);
   }
 
-  // ===== 토글들 =====
+  // ===== 화면 토글 =====
   function togglePlayerVisibility() {
     globalState.isPlayerVisible = !globalState.isPlayerVisible;
     togglePlayerBtn.classList.toggle('active', !globalState.isPlayerVisible);
@@ -969,7 +985,6 @@
       } else {
         showMessage("최신순");
       }
-      // 셔플 덱 갱신
       if (globalState.isShuffleMode) rebuildShuffleDeck();
       renderList();
       updatePlayingSong(globalState.videoId);
@@ -1009,7 +1024,7 @@
   // ===== 전역 노출 =====
   window.openInfoModal = openInfoModal;
 
-  // ===== 시작 =====
+  // 시작
   window.onload = function() { boot(); };
 </script>
 </body>
