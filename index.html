@@ -15,7 +15,6 @@
     .btn-toggle { background: #555; }
     .btn-toggle.active { background: #fc8181; }
     .btn-sort { background-color: #555; color: #fff; }
-    /* 따봉정렬 단계 색상 */
     .btn-sort.most-liked { background-color: #f6ad55; } /* 노랑: 따봉많은순 */
     .btn-sort.user-liked { background-color: #48bb78; } /* 초록: 내따봉 우선 */
 
@@ -30,10 +29,13 @@
     .item .delete-btn { background: none; border: none; color: #fc8181; cursor: pointer; font-size: 1.2em; line-height: 1; margin-left: 10px; opacity: 0.7; transition: opacity 0.2s; }
     .item .delete-btn:hover { opacity: 1; }
     .item .info-icon { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 1.2em; margin-right: 5px; }
-    .item .like-btn { background: none; border: none; color: #aaa; cursor: pointer; font-size: 1.2em; margin-right: 5px; transition: transform .05s ease; }
+
+    /* 여기만 변경: 기본 검정, 누르면 노랑 */
+    .item .like-btn { background: none; border: none; cursor: pointer; font-size: 1.2em; margin-right: 5px; transition: transform .05s ease; color: #000; }
     .item .like-btn:active { transform: scale(0.96); }
-    .item .like-btn.liked { color: #f6e07a; } /* 내가 누르면 색상 */
+    .item .like-btn.liked { color: #f6e07a; } /* 클릭 시 노랑 */
     .like-count { font-size: 0.9em; color: #a0aec0; margin-left: -5px; margin-right: 5px;}
+
     .uploader-btn { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 0.9em; margin-right: 5px; padding: 0; }
     .video-player { aspect-ratio: 16 / 9; width: 100%; max-width: 800px; margin: 8px auto; border-radius: 8px; overflow: hidden; position: relative; }
     .main-title { text-align: center; }
@@ -49,7 +51,7 @@
     .modal-content textarea { height: 100px; resize: vertical; }
     .modal-content .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
     .modal-content .close-btn:hover, .modal-content .close-btn:focus { color: #fff; text-decoration: none; cursor: pointer; }
-    .modal-content .save-btn { background: #38b2ac; color: #fff; border: 0; border-radius: 999px; padding: .6rem 1rem; margin-top: 10px; cursor: pointer; }
+    .modal-content .save-btn { background: #38b2ac; color: #fff; border: 0; border-radius: 999px; padding: .6rem 1rem; cursor: pointer; }
     .confirm-modal { display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); justify-content: center; align-items: center; }
     .confirm-modal-content { background-color: #222; padding: 20px; border: 1px solid #444; width: 80%; max-width: 350px; border-radius: 10px; text-align: center; }
     .confirm-modal-content p { margin: 0 0 20px 0; }
@@ -169,824 +171,500 @@
 </div>
 
 <script>
-  // 고정 설정
-  const __firebase_config = '{"apiKey":"AIzaSyDz6xGJNKXinG5rREjdrPz7toIYGZXzilU","authDomain":"sarangbangmusicplaylist.firebaseapp.com","projectId":"sarangbangmusicplaylist","storageBucket":"sarangbangmusicplaylist.appspot.com","messagingSenderId":"193412502606","appId":"1:193412502606:web:0f7f9ddbef1ee6711d1ff","measurementId":"G-L14GH3BHYD"}';
-  const __app_id = "default-app-id";
-  const __initial_auth_token = "";
-  const firebaseConfig = JSON.parse(__firebase_config);
-  const YOUTUBE_API_KEY = "AIzaSyB2GymrywkBYx4Mbt_xHNiYEV44MbfKY2w";
+  const __firebase_config='{"apiKey":"AIzaSyDz6xGJNKXinG5rREjdrPz7toIYGZXzilU","authDomain":"sarangbangmusicplaylist.firebaseapp.com","projectId":"sarangbangmusicplaylist","storageBucket":"sarangbangmusicplaylist.appspot.com","messagingSenderId":"193412502606","appId":"1:193412502606:web:0f7f9ddbef1ee6711d1ff","measurementId":"G-L14GH3BHYD"}';
+  const __app_id="default-app-id";
+  const __initial_auth_token="";
+  const firebaseConfig=JSON.parse(__firebase_config);
+  const YOUTUBE_API_KEY="AIzaSyB2GymrywkBYx4Mbt_xHNiYEV44MbfKY2w";
 
-  // DOM
-  const urlInput = document.getElementById('url');
-  const addBtn = document.getElementById('add');
-  const shuffleBtn = document.getElementById('shuffleBtn');
-  const likeSortBtn = document.getElementById('likeSortBtn');
-  const listEl = document.getElementById('playlist');
-  const messageBox = document.getElementById('message-box');
-  const manualInputDiv = document.getElementById('manual-input');
-  const manualTitleInput = document.getElementById('manualTitle');
-  const manualArtistInput = document.getElementById('manualArtist');
-  const busterCallToggleBtn = document.getElementById('busterCallToggle');
-  const prevSongBtn = document.getElementById('prev-song-btn-inline');
-  const nextSongBtn = document.getElementById('next-song-btn-inline');
-  const currentSongInfoEl = document.getElementById('currentSongInfo');
-  const currentSongNotesEl = document.getElementById('currentSongNotes');
-  const busterCallOverlay = document.getElementById('buster-call-overlay');
-  const togglePlayerBtn = document.getElementById('togglePlayerBtn');
-  const playerContainer = document.getElementById('player-container');
-  const dingdongSound = document.getElementById('dingdong-sound');
+  const urlInput=document.getElementById('url');
+  const addBtn=document.getElementById('add');
+  const shuffleBtn=document.getElementById('shuffleBtn');
+  const likeSortBtn=document.getElementById('likeSortBtn');
+  const listEl=document.getElementById('playlist');
+  const messageBox=document.getElementById('message-box');
+  const manualInputDiv=document.getElementById('manual-input');
+  const manualTitleInput=document.getElementById('manualTitle');
+  const manualArtistInput=document.getElementById('manualArtist');
+  const busterCallToggleBtn=document.getElementById('busterCallToggle');
+  const prevSongBtn=document.getElementById('prev-song-btn-inline');
+  const nextSongBtn=document.getElementById('next-song-btn-inline');
+  const currentSongInfoEl=document.getElementById('currentSongInfo');
+  const currentSongNotesEl=document.getElementById('currentSongNotes');
+  const busterCallOverlay=document.getElementById('buster-call-overlay');
+  const togglePlayerBtn=document.getElementById('togglePlayerBtn');
+  const playerContainer=document.getElementById('player-container');
+  const dingdongSound=document.getElementById('dingdong-sound');
 
-  const infoModal = document.getElementById('infoModal');
-  const songTitleInput = document.getElementById('songTitleInput');
-  const artistInput = document.getElementById('artistInput');
-  const uploaderInput = document.getElementById('uploaderInput');
-  const infoTextarea = document.getElementById('infoTextarea');
-  const commentTextarea = document.getElementById('commentTextarea');
-  const saveInfoBtn = document.getElementById('saveInfoBtn');
-  const modalCloseBtn = document.querySelector('.modal .close-btn');
-  const confirmModal = document.getElementById('confirmModal');
-  const confirmYesBtn = document.getElementById('confirmYes');
-  const confirmNoBtn = document.getElementById('confirmNo');
+  const infoModal=document.getElementById('infoModal');
+  const songTitleInput=document.getElementById('songTitleInput');
+  const artistInput=document.getElementById('artistInput');
+  const uploaderInput=document.getElementById('uploaderInput');
+  const infoTextarea=document.getElementById('infoTextarea');
+  const commentTextarea=document.getElementById('commentTextarea');
+  const saveInfoBtn=document.getElementById('saveInfoBtn');
+  const modalCloseBtn=document.querySelector('.modal .close-btn');
+  const confirmModal=document.getElementById('confirmModal');
+  const confirmYesBtn=document.getElementById('confirmYes');
+  const confirmNoBtn=document.getElementById('confirmNo');
 
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-  let userId = null;
+  const appId=typeof __app_id!=='undefined'?__app_id:'default-app-id';
+  let userId=null;
 
-  // 로컬 따봉 저장
-  const LOCAL_LIKE_KEY = `likes:${appId}`;
-  function loadLocalLikes(){ try{ return JSON.parse(localStorage.getItem(LOCAL_LIKE_KEY)||'{}'); }catch{ return {}; } }
+  const LOCAL_LIKE_KEY=`likes:${appId}`;
+  function loadLocalLikes(){ try{return JSON.parse(localStorage.getItem(LOCAL_LIKE_KEY)||'{}')}catch{return{}} }
   function saveLocalLikes(map){ localStorage.setItem(LOCAL_LIKE_KEY, JSON.stringify(map)); }
 
-  const globalState = {
-    playlist: [],
-    shuffledOrder: [],
-    shuffleDeck: [],
-    songLikes: {},     // 서버 집계 {videoId:{likeCount, likedBy}}
-    notes: {},
-    isShuffleMode: false,
-    filterUploader: null,
-    videoId: '',
-    timestamp: 0,
-    lastUpdatedBy: null,
-    currentPlayingIndex: -1,
-    isBusterCallMode: false,
-    lastBusterCallTimestamp: 0,
-    busterCallCoolDown: 30 * 1000,
-    isPlayerVisible: true,
-    playbackTitle: null,
-    playbackArtist: null,
-    // 추가
-    localLikes: {},    // {videoId:true}
-    likeSortMode: 0,   // 0=최신순, 1=따봉많은순(노랑), 2=내따봉우선(초록)
+  const globalState={
+    playlist:[], shuffledOrder:[], shuffleDeck:[],
+    songLikes:{}, notes:{},
+    isShuffleMode:false, filterUploader:null,
+    videoId:'', timestamp:0, lastUpdatedBy:null, currentPlayingIndex:-1,
+    isBusterCallMode:false, lastBusterCallTimestamp:0, busterCallCoolDown:30000,
+    isPlayerVisible:true, playbackTitle:null, playbackArtist:null,
+    localLikes:{}, likeSortMode:0,
   };
 
-  let authed = false;
-  let player;
-  let isManuallyAdding = false;
-  let db;
-  let isYoutubeApiReady = false;
+  let authed=false; let player; let isManuallyAdding=false; let db; let isYoutubeApiReady=false;
 
-  // YouTube Iframe API
-  const tag = document.createElement('script');
-  tag.src = "https://www.youtube.com/iframe_api";
-  const firstScriptTag = document.getElementsByTagName('script')[0];
-  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-  window.onYouTubeIframeAPIReady = function() {
-    isYoutubeApiReady = true;
-    player = new YT.Player('player', {
-      height: '100%', width: '100%', videoId: '',
-      playerVars: { autoplay: 1, controls: 1 },
-      events: { onStateChange: onPlayerStateChange }
-    });
+  const tag=document.createElement('script'); tag.src="https://www.youtube.com/iframe_api";
+  const firstScriptTag=document.getElementsByTagName('script')[0]; firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+  window.onYouTubeIframeAPIReady=function(){
+    isYoutubeApiReady=true;
+    player=new YT.Player('player',{height:'100%',width:'100%',videoId:'',playerVars:{autoplay:1,controls:1},events:{onStateChange:onPlayerStateChange}});
   };
 
-  function showMessage(message, type = 'info') {
-    messageBox.textContent = message;
-    messageBox.style.background = (type === 'error') ? '#fc8181' : '#2d3748';
-    messageBox.style.display = 'block';
-    setTimeout(() => { messageBox.style.display = 'none'; }, 2000);
+  function showMessage(msg,type='info'){ messageBox.textContent=msg; messageBox.style.background=(type==='error')?'#fc8181':'#2d3748'; messageBox.style.display='block'; setTimeout(()=>{messageBox.style.display='none';},2000); }
+  function showConfirm(message){
+    document.querySelector('#confirmModal p').textContent=message; confirmModal.style.display='flex';
+    return new Promise((resolve)=>{ confirmYesBtn.onclick=()=>{confirmModal.style.display='none';resolve(true)}; confirmNoBtn.onclick=()=>{confirmModal.style.display='none';resolve(false)}; });
   }
 
-  function showConfirm(message) {
-    document.querySelector('#confirmModal p').textContent = message;
-    confirmModal.style.display = 'flex';
-    return new Promise((resolve) => {
-      confirmYesBtn.onclick = () => { confirmModal.style.display = 'none'; resolve(true); };
-      confirmNoBtn.onclick = () => { confirmModal.style.display = 'none'; resolve(false); };
-    });
+  async function boot(){
+    try{ firebase.initializeApp(firebaseConfig); db=firebase.firestore(); }catch(e){ console.error(e); return; }
+    try{
+      const auth=firebase.auth();
+      const cred=(typeof __initial_auth_token!=='undefined' && __initial_auth_token)?await auth.signInWithCustomToken(__initial_auth_token):await auth.signInAnonymously();
+      userId=cred.user.uid; authed=true;
+    }catch(e){ console.error(e); return; }
+
+    globalState.localLikes=loadLocalLikes();
+    startRealtime(); wireUI();
   }
 
-  async function boot() {
-    try { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); }
-    catch(e) { console.error(e); return; }
-    try {
-      const auth = firebase.auth();
-      const cred = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token)
-        ? await auth.signInWithCustomToken(__initial_auth_token)
-        : await auth.signInAnonymously();
-      userId = cred.user.uid; authed = true;
-    } catch(e){ console.error(e); return; }
+  function onPlayerStateChange(e){ if(e.data===YT.PlayerState.ENDED) playNext(); }
 
-    // 로컬 따봉 로드
-    globalState.localLikes = loadLocalLikes();
-
-    startRealtime();
-    wireUI();
-  }
-
-  function onPlayerStateChange(event) {
-    if (event.data === YT.PlayerState.ENDED) playNext();
-  }
-
-  function startRealtime() {
-    // 버스터콜 오버레이
-    const busterCallRef = db.collection('artifacts').doc(appId).collection('public')
-      .doc('data').collection('buster_call_state').doc('main_state');
-    busterCallRef.onSnapshot(snap => {
-      if (!snap.exists) return;
-      const state = snap.data();
-      if (state?.lastBusterCallTimestamp) {
-        globalState.lastBusterCallTimestamp = state.lastBusterCallTimestamp.toMillis();
-        checkBusterCallCooldown();
-      }
-      if (state?.showBusterCall) {
+  function startRealtime(){
+    const busterCallRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('buster_call_state').doc('main_state');
+    busterCallRef.onSnapshot(snap=>{
+      if(!snap.exists) return;
+      const state=snap.data();
+      if(state?.lastBusterCallTimestamp){ globalState.lastBusterCallTimestamp=state.lastBusterCallTimestamp.toMillis(); checkBusterCallCooldown(); }
+      if(state?.showBusterCall){
         busterCallOverlay.classList.add('show');
-        const endMillis = state.endTimestamp.toMillis();
-        const remainingTime = endMillis - Date.now();
+        const endMillis=state.endTimestamp.toMillis();
+        const remaining=endMillis-Date.now();
         dingdongSound.play().catch(()=>{});
-        const hide = () => {
-          busterCallOverlay.classList.remove('show');
-          db.collection('artifacts').doc(appId).collection('public')
-            .doc('data').collection('buster_call_state').doc('main_state')
-            .set({ showBusterCall: false }, { merge: true });
-        };
-        if (remainingTime > 0) setTimeout(hide, remainingTime); else hide();
-      } else {
-        busterCallOverlay.classList.remove('show');
+        const hide=()=>{ busterCallOverlay.classList.remove('show'); db.collection('artifacts').doc(appId).collection('public').doc('data').collection('buster_call_state').doc('main_state').set({showBusterCall:false},{merge:true}); };
+        if(remaining>0) setTimeout(hide,remaining); else hide();
+      } else { busterCallOverlay.classList.remove('show'); }
+    });
+
+    const playbackRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('playback_state').doc('main_state');
+    playbackRef.onSnapshot((snap)=>{
+      if(!snap.exists) return;
+      const state=snap.data()||{};
+      if(state.lastUpdatedBy===userId) return;
+      globalState.playbackTitle=state.title||null; globalState.playbackArtist=state.artist||null;
+      try{
+        if(isYoutubeApiReady && state.videoId && globalState.videoId!==state.videoId){
+          player.loadVideoById(state.videoId); player.seekTo(state.timestamp||0,true); updatePlayingSong(state.videoId);
+        } else { renderCurrentSongInfo(); }
+      }catch(e){ console.error(e); }
+    });
+
+    const playlistRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('playlist_state').doc('main_playlist');
+    playlistRef.onSnapshot((snap)=>{
+      if(!snap.exists){ savePlaylistState(); return; }
+      const data=snap.data()||{}; const received=Array.isArray(data.playlist)?data.playlist:[];
+      if(JSON.stringify(received)!==JSON.stringify(globalState.playlist)){
+        globalState.playlist=received; if(globalState.isShuffleMode) syncDeckWithVisible(); renderList();
       }
     });
 
-    // 재생 상태 리스너
-    const playbackRef = db.collection('artifacts').doc(appId).collection('public')
-      .doc('data').collection('playback_state').doc('main_state');
-    playbackRef.onSnapshot((snap) => {
-      if (!snap.exists) return;
-      const state = snap.data() || {};
-      if (state.lastUpdatedBy === userId) return;
-
-      globalState.playbackTitle = state.title || null;
-      globalState.playbackArtist = state.artist || null;
-
-      try {
-        if (isYoutubeApiReady && state.videoId && globalState.videoId !== state.videoId) {
-          player.loadVideoById(state.videoId);
-          player.seekTo(state.timestamp || 0, true);
-          updatePlayingSong(state.videoId);
-        } else {
-          renderCurrentSongInfo();
-        }
-      } catch(e){ console.error(e); }
+    const notesRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes');
+    notesRef.onSnapshot(snapshot=>{
+      const m={}; snapshot.docs.forEach(doc=>{ m[doc.id]=doc.data(); }); globalState.notes=m; renderList(); renderCurrentSongNotes();
     });
 
-    // 재생목록 리스너
-    const playlistRef = db.collection('artifacts').doc(appId).collection('public')
-      .doc('data').collection('playlist_state').doc('main_playlist');
-    playlistRef.onSnapshot((snap) => {
-      if (!snap.exists) { savePlaylistState(); return; }
-      const playlistData = snap.data() || {};
-      const receivedPlaylist = Array.isArray(playlistData.playlist) ? playlistData.playlist : [];
-      if (JSON.stringify(receivedPlaylist) !== JSON.stringify(globalState.playlist)) {
-        globalState.playlist = receivedPlaylist;
-        if (globalState.isShuffleMode) syncDeckWithVisible();
-        renderList();
-      }
-    });
-
-    // 노트 리스너
-    const notesRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes');
-    notesRef.onSnapshot(snapshot => {
-      const newNotes = {};
-      snapshot.docs.forEach(doc => { newNotes[doc.id] = doc.data(); });
-      globalState.notes = newNotes;
-      renderList();
-      renderCurrentSongNotes();
-    });
-
-    // 따봉 리스너(서버 집계)
-    const likesRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('song_likes');
-    likesRef.onSnapshot(snapshot => {
-      const newLikes = {};
-      snapshot.docs.forEach(doc => { newLikes[doc.id] = doc.data(); });
-      globalState.songLikes = newLikes;
-      renderList();
+    const likesRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('song_likes');
+    likesRef.onSnapshot(snapshot=>{
+      const m={}; snapshot.docs.forEach(doc=>{ m[doc.id]=doc.data(); }); globalState.songLikes=m; renderList();
     });
   }
 
-  function updatePlaylist(newPlaylist) {
-    globalState.playlist = newPlaylist;
-    savePlaylistState();
-    if (globalState.isShuffleMode) syncDeckWithVisible();
+  function updatePlaylist(newPlaylist){ globalState.playlist=newPlaylist; savePlaylistState(); if(globalState.isShuffleMode) syncDeckWithVisible(); }
+  let playlistSaveTimer=null;
+  function savePlaylistState(){
+    if(!authed) return;
+    if(playlistSaveTimer) clearTimeout(playlistSaveTimer);
+    playlistSaveTimer=setTimeout(async()=>{
+      try{
+        const ref=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('playlist_state').doc('main_playlist');
+        const valid=globalState.playlist.map(item=>({...item, createdAt:item.createdAt||new Date()}));
+        await ref.set({playlist:valid,lastUpdatedBy:userId,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+      }catch(e){ console.error(e); }
+    },300);
   }
 
-  let playlistSaveTimer = null;
-  function savePlaylistState() {
-    if (!authed) return;
-    if (playlistSaveTimer) clearTimeout(playlistSaveTimer);
-    playlistSaveTimer = setTimeout(async () => {
-      try {
-        const ref = db.collection('artifacts').doc(appId).collection('public')
-          .doc('data').collection('playlist_state').doc('main_playlist');
-        const validPlaylist = globalState.playlist.map(item => ({ ...item, createdAt: item.createdAt || new Date() }));
-        await ref.set({ playlist: validPlaylist, lastUpdatedBy: userId, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-      } catch (e) { console.error(e); }
-    }, 300);
+  function isNew(item){
+    const t=item?.createdAt?.toDate?item.createdAt.toDate().getTime():item?.createdAt?.getTime?.();
+    if(!t) return false; return (Date.now()-t)<12*60*60*1000;
   }
 
-  function isNew(item) {
-    const t = item?.createdAt?.toDate ? item.createdAt.toDate().getTime() : item?.createdAt?.getTime?.();
-    if (!t) return false;
-    return (Date.now() - t) < 12 * 60 * 60 * 1000;
-  }
-
-  // 가시 목록 + 3단계 정렬
-  function getVisibleList() {
-    let list = [...globalState.playlist];
-
-    // 기본: 최신순
-    list.sort((a,b) => {
-      const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : a.createdAt?.getTime();
-      const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : b.createdAt?.getTime();
-      return (timeB || 0) - (timeA || 0);
+  function getVisibleList(){
+    let list=[...globalState.playlist];
+    list.sort((a,b)=>{
+      const ta=a.createdAt?.toDate?a.createdAt.toDate().getTime():a.createdAt?.getTime();
+      const tb=b.createdAt?.toDate?b.createdAt.toDate().getTime():b.createdAt?.getTime();
+      return (tb||0)-(ta||0);
     });
-
-    if (globalState.filterUploader) {
-      const filtered = list.filter(item => globalState.notes[item.videoId]?.uploader === globalState.filterUploader);
-      const others = list.filter(item => globalState.notes[item.videoId]?.uploader !== globalState.filterUploader);
-      list = [...filtered, ...others];
+    if(globalState.filterUploader){
+      const f=list.filter(i=>globalState.notes[i.videoId]?.uploader===globalState.filterUploader);
+      const o=list.filter(i=>globalState.notes[i.videoId]?.uploader!==globalState.filterUploader);
+      list=[...f,...o];
     }
-
-    if (globalState.likeSortMode === 1) {
-      // 따봉 많은 순(서버 집계)
-      list.sort((a, b) => {
-        const likesA = globalState.songLikes[a.videoId]?.likeCount || 0;
-        const likesB = globalState.songLikes[b.videoId]?.likeCount || 0;
-        return likesB - likesA;
+    if(globalState.likeSortMode===1){
+      list.sort((a,b)=>{
+        const la=globalState.songLikes[a.videoId]?.likeCount||0;
+        const lb=globalState.songLikes[b.videoId]?.likeCount||0;
+        return lb-la;
       });
-    } else if (globalState.likeSortMode === 2) {
-      // 내 따봉 우선(로컬 저장 기준)
-      const liked = [], others = [];
-      list.forEach(item => {
-        const hasLocal = !!globalState.localLikes[item.videoId];
-        (hasLocal ? liked : others).push(item);
-      });
-      list = [...liked, ...others];
+    }else if(globalState.likeSortMode===2){
+      const liked=[], others=[];
+      list.forEach(it=>{ (globalState.localLikes[it.videoId]?liked:others).push(it); });
+      list=[...liked,...others];
     }
     return list;
   }
 
-  // ====== 셔플 중복 방지 ======
-  function fyShuffle(arr){
-    const a=[...arr];
-    for(let i=a.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1));
-      [a[i],a[j]]=[a[j],a[i]];
-    }
-    return a;
-  }
-  function rebuildShuffleDeck(){
-    const visibleIds=getVisibleList().map(s=>s.videoId);
-    const base=visibleIds.filter(id=>id!==globalState.videoId);
-    globalState.shuffleDeck=fyShuffle(base);
-  }
+  function fyShuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+  function rebuildShuffleDeck(){ const ids=getVisibleList().map(s=>s.videoId); const base=ids.filter(id=>id!==globalState.videoId); globalState.shuffleDeck=fyShuffle(base); }
   function syncDeckWithVisible(){
-    const visibleIds=new Set(getVisibleList().map(s=>s.videoId));
-    globalState.shuffleDeck=globalState.shuffleDeck.filter(id=>visibleIds.has(id)&&id!==globalState.videoId);
-    const toAdd=[...visibleIds].filter(id=>id!==globalState.videoId && !globalState.shuffleDeck.includes(id));
+    const ids=new Set(getVisibleList().map(s=>s.videoId));
+    globalState.shuffleDeck=globalState.shuffleDeck.filter(id=>ids.has(id)&&id!==globalState.videoId);
+    const toAdd=[...ids].filter(id=>id!==globalState.videoId && !globalState.shuffleDeck.includes(id));
     if(toAdd.length) globalState.shuffleDeck.push(...fyShuffle(toAdd));
   }
 
-  function filterByUploader(uploaderName) {
-    if (globalState.filterUploader === uploaderName) {
-      globalState.filterUploader = null;
-      showMessage("필터가 해제되었습니다.");
-    } else {
-      globalState.filterUploader = uploaderName;
-      globalState.isShuffleMode = false;
-      globalState.likeSortMode = 0;
-      shuffleBtn.classList.remove('active');
-      likeSortBtn.classList.remove('most-liked','user-liked');
-      showMessage(`${uploaderName}님이 올린 곡만 상단으로 정렬합니다.`);
+  function filterByUploader(name){
+    if(globalState.filterUploader===name){ globalState.filterUploader=null; showMessage("필터가 해제되었습니다."); }
+    else{
+      globalState.filterUploader=name; globalState.isShuffleMode=false; globalState.likeSortMode=0;
+      shuffleBtn.classList.remove('active'); likeSortBtn.classList.remove('most-liked','user-liked');
+      showMessage(`${name}님이 올린 곡만 상단으로 정렬합니다.`);
     }
     renderList();
   }
 
-  function renderList() {
-    listEl.innerHTML = '';
-    const playlistToRender = getVisibleList();
-    if (!playlistToRender.length) {
-      listEl.innerHTML = '<div class="muted">재생목록이 비어있습니다.</div>';
-      renderCurrentSongInfo();
-      return;
-    }
+  function renderList(){
+    listEl.innerHTML='';
+    const list=getVisibleList();
+    if(!list.length){ listEl.innerHTML='<div class="muted">재생목록이 비어있습니다.</div>'; renderCurrentSongInfo(); return; }
 
-    playlistToRender.forEach((item, index) => {
-      const div = document.createElement('div');
-      div.className = 'item';
-      div.dataset.videoId = item.videoId;
-      div.dataset.index = index;
+    list.forEach((item,index)=>{
+      const div=document.createElement('div'); div.className='item'; div.dataset.videoId=item.videoId; div.dataset.index=index;
 
-      const songDetails = document.createElement('div');
-      songDetails.className = 'song-details';
-
-      const infoIcon = document.createElement('button');
-      infoIcon.className = 'info-icon';
-      infoIcon.innerHTML = '&#x24D8;';
-      infoIcon.addEventListener('click', (e) => { e.stopPropagation(); openInfoModal(item.videoId); });
+      const songDetails=document.createElement('div'); songDetails.className='song-details';
+      const infoIcon=document.createElement('button'); infoIcon.className='info-icon'; infoIcon.innerHTML='&#x24D8;';
+      infoIcon.addEventListener('click',(e)=>{ e.stopPropagation(); openInfoModal(item.videoId); });
       songDetails.appendChild(infoIcon);
 
-      const titleSpan = document.createElement('span');
-      titleSpan.textContent = `${item.artist} - ${item.title}`;
-      songDetails.appendChild(titleSpan);
+      const titleSpan=document.createElement('span'); titleSpan.textContent=`${item.artist} - ${item.title}`; songDetails.appendChild(titleSpan);
+      if(isNew(item)){ const newTag=document.createElement('span'); newTag.className='new-tag'; newTag.textContent='new'; titleSpan.prepend(newTag,' '); }
 
-      if (isNew(item)) {
-        const newTag = document.createElement('span');
-        newTag.className = 'new-tag';
-        newTag.textContent = 'new';
-        titleSpan.prepend(newTag, ' ');
-      }
+      const uploader=globalState.notes[item.videoId]?.uploader||'익명';
+      const uploaderBtn=document.createElement('button'); uploaderBtn.className='uploader-btn'; uploaderBtn.textContent=uploader;
+      uploaderBtn.addEventListener('click',(e)=>{ e.stopPropagation(); filterByUploader(uploader); });
 
-      const uploader = globalState.notes[item.videoId]?.uploader || '익명';
-      const uploaderBtn = document.createElement('button');
-      uploaderBtn.className = 'uploader-btn';
-      uploaderBtn.textContent = uploader;
-      uploaderBtn.addEventListener('click', (e) => { e.stopPropagation(); filterByUploader(uploader); });
+      const likeWrapper=document.createElement('div');
 
-      const likeWrapper = document.createElement('div');
-      const likeBtn = document.createElement('button');
+      const likeBtn=document.createElement('button');
+      const hasLocalLiked=!!globalState.localLikes[item.videoId];
+      likeBtn.className=`like-btn${hasLocalLiked?' liked':''}`;
+      likeBtn.setAttribute('aria-pressed',hasLocalLiked?'true':'false');
+      likeBtn.innerHTML='👍'; // 이모지는 하나만 쓰고 색만 CSS로 바꿈
+      likeBtn.addEventListener('click',(e)=>{ e.stopPropagation(); handleLike(item.videoId); });
 
-      const likeCount = globalState.songLikes[item.videoId]?.likeCount || 0;
-      const hasLocalLiked = !!globalState.localLikes[item.videoId]; // 로컬 기준 색상
-      likeBtn.className = `like-btn${hasLocalLiked ? ' liked' : ''}`;
-      likeBtn.setAttribute('aria-pressed', hasLocalLiked ? 'true' : 'false');
-      likeBtn.innerHTML = '👍';
-      likeBtn.addEventListener('click', (e) => { e.stopPropagation(); handleLike(item.videoId); });
-
-      const countSpan = document.createElement('span');
-      countSpan.className = 'like-count';
-      countSpan.textContent = likeCount;
+      const countSpan=document.createElement('span'); countSpan.className='like-count';
+      countSpan.textContent=globalState.songLikes[item.videoId]?.likeCount||0;
 
       likeWrapper.appendChild(uploaderBtn);
       likeWrapper.appendChild(likeBtn);
       likeWrapper.appendChild(countSpan);
 
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'delete-btn';
-      deleteBtn.innerHTML = '&#x2715;';
-      deleteBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const shouldDelete = await showConfirm("정말로 삭제하시겠습니까?");
-        if (shouldDelete) {
-          const newPlaylist = [...globalState.playlist].filter(s => s.videoId !== item.videoId);
-          updatePlaylist(newPlaylist);
-        }
-      });
+      const deleteBtn=document.createElement('button'); deleteBtn.className='delete-btn'; deleteBtn.innerHTML='&#x2715;';
+      deleteBtn.addEventListener('click',async(e)=>{ e.stopPropagation(); const ok=await showConfirm("정말로 삭제하시겠습니까?"); if(ok){ const np=[...globalState.playlist].filter(s=>s.videoId!==item.videoId); updatePlaylist(np); } });
 
       div.appendChild(songDetails);
       div.appendChild(likeWrapper);
       div.appendChild(deleteBtn);
 
-      div.addEventListener('click', () => {
-        if (globalState.isBusterCallMode) {
-          const now = Date.now();
-          const last = globalState.lastBusterCallTimestamp;
-          if (now - last > globalState.busterCallCoolDown) {
-            busterCall(item.videoId);
-            globalState.isBusterCallMode = false;
-            busterCallToggleBtn.classList.remove('active');
-          } else {
-            const remaining = Math.ceil((globalState.busterCallCoolDown - (now - last)) / 1000);
-            showMessage(`버스터콜은 ${remaining}초 후에 다시 사용할 수 있습니다.`, 'error');
-            globalState.isBusterCallMode = false;
-            busterCallToggleBtn.classList.remove('active');
-          }
-        } else {
-          const activeList = getVisibleList();
-          const songIndex = activeList.findIndex(song => song.videoId === item.videoId);
-          if (songIndex !== -1) {
-            playVideo(songIndex);
-            showMessage("해당 곡을 재생합니다.", 'info');
-          }
+      div.addEventListener('click',()=>{
+        if(globalState.isBusterCallMode){
+          const now=Date.now(); const last=globalState.lastBusterCallTimestamp;
+          if(now-last>globalState.busterCallCoolDown){ busterCall(item.videoId); globalState.isBusterCallMode=false; busterCallToggleBtn.classList.remove('active'); }
+          else{ const remain=Math.ceil((globalState.busterCallCoolDown-(now-last))/1000); showMessage(`버스터콜은 ${remain}초 후에 다시 사용할 수 있습니다.`,'error'); globalState.isBusterCallMode=false; busterCallToggleBtn.classList.remove('active'); }
+        }else{
+          const active=getVisibleList(); const idx=active.findIndex(s=>s.videoId===item.videoId);
+          if(idx!==-1){ playVideo(idx); showMessage("해당 곡을 재생합니다.",'info'); }
         }
       });
 
       listEl.appendChild(div);
     });
 
-    const currentSongIsInPlaylist = playlistToRender.some(item => item.videoId === globalState.videoId);
-    if (globalState.videoId && !currentSongIsInPlaylist && playlistToRender.length > 0) {
-      let nextIndex = globalState.currentPlayingIndex;
-      if (nextIndex >= playlistToRender.length) nextIndex = playlistToRender.length - 1;
-      playVideo(nextIndex);
-    } else if (playlistToRender.length > 0 && globalState.currentPlayingIndex === -1) {
-      playVideo(0);
-    }
+    const inList=list.some(i=>i.videoId===globalState.videoId);
+    if(globalState.videoId && !inList && list.length>0){
+      let nextIndex=globalState.currentPlayingIndex; if(nextIndex>=list.length) nextIndex=list.length-1; playVideo(nextIndex);
+    } else if(list.length>0 && globalState.currentPlayingIndex===-1){ playVideo(0); }
 
     renderCurrentSongInfo();
   }
 
-  // 따봉: 로컬 즉시 반영 + 서버 집계 반영
-  async function handleLike(videoId) {
-    if (!userId) { showMessage("로그인되지 않았습니다. 좋아요를 누를 수 없습니다.", 'error'); return; }
+  async function handleLike(videoId){
+    if(!userId){ showMessage("로그인되지 않았습니다. 좋아요를 누를 수 없습니다.",'error'); return; }
 
-    // 1) 로컬 토글로 즉시 색상 반영
-    const wasLocal = !!globalState.localLikes[videoId];
-    if (wasLocal) delete globalState.localLikes[videoId];
-    else globalState.localLikes[videoId] = true;
+    const was=!!globalState.localLikes[videoId];
+    if(was) delete globalState.localLikes[videoId]; else globalState.localLikes[videoId]=true;
     saveLocalLikes(globalState.localLikes);
 
-    // UI 즉시 갱신
-    renderList();
+    renderList(); // 색 즉시 반영
 
-    // 2) 서버 카운트 갱신
-    const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('song_likes').doc(videoId);
-    try {
-      await db.runTransaction(async (transaction) => {
-        const doc = await transaction.get(docRef);
-        let likeCount = 0;
-        let likedBy = {};
-        if (doc.exists) { likeCount = doc.data().likeCount || 0; likedBy = doc.data().likedBy || {}; }
-        const hasLiked = !!likedBy[userId];
-        if (hasLiked) { likeCount = Math.max(0, likeCount - 1); delete likedBy[userId]; showMessage("좋아요가 취소되었습니다."); }
-        else { likeCount++; likedBy[userId] = true; showMessage("좋아요를 눌렀습니다!", 'ok'); }
-        transaction.set(docRef, { likeCount, likedBy, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
+    const docRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('song_likes').doc(videoId);
+    try{
+      await db.runTransaction(async(tr)=>{
+        const doc=await tr.get(docRef);
+        let likeCount=0; let likedBy={};
+        if(doc.exists){ likeCount=doc.data().likeCount||0; likedBy=doc.data().likedBy||{}; }
+        const hasLiked=!!likedBy[userId];
+        if(hasLiked){ likeCount=Math.max(0,likeCount-1); delete likedBy[userId]; showMessage("좋아요가 취소되었습니다."); }
+        else{ likeCount++; likedBy[userId]=true; showMessage("좋아요를 눌렀습니다!",'ok'); }
+        tr.set(docRef,{likeCount,likedBy,lastUpdated:firebase.firestore.FieldValue.serverTimestamp()});
       });
-    } catch (e) {
-      console.error(e);
-      showMessage("좋아요 처리에 실패했습니다. " + e.message, 'error');
-      // 실패 시 로컬 롤백
-      if (wasLocal) globalState.localLikes[videoId] = true; else delete globalState.localLikes[videoId];
-      saveLocalLikes(globalState.localLikes);
-      renderList();
+    }catch(e){
+      console.error(e); showMessage("좋아요 처리에 실패했습니다. "+e.message,'error');
+      if(was) globalState.localLikes[videoId]=true; else delete globalState.localLikes[videoId];
+      saveLocalLikes(globalState.localLikes); renderList();
     }
   }
 
-  function updatePlayingSong(videoId) {
-    const activeList = getVisibleList();
-    const idx = activeList.findIndex(item => item.videoId === videoId);
-    if (idx !== -1) { globalState.currentPlayingIndex = idx; globalState.videoId = videoId; }
-    else { globalState.currentPlayingIndex = -1; globalState.videoId = videoId; }
+  function updatePlayingSong(videoId){
+    const list=getVisibleList(); const idx=list.findIndex(i=>i.videoId===videoId);
+    if(idx!==-1){ globalState.currentPlayingIndex=idx; globalState.videoId=videoId; }
+    else{ globalState.currentPlayingIndex=-1; globalState.videoId=videoId; }
     renderCurrentSongInfo();
   }
 
-  function renderCurrentSongInfo() {
-    const visible = getVisibleList();
-    const songToDisplay = visible.find(song => song.videoId === globalState.videoId);
-
-    if (songToDisplay) {
-      const infoButton = `<button class="current-info-btn" onclick="openInfoModal('${songToDisplay.videoId}')">&#x24D8;</button>`;
-      const songText = `<span style="font-weight: bold;">${songToDisplay.title}</span><span class="muted" style="margin-left: 5px;"> - ${songToDisplay.artist}</span>`;
-      document.getElementById('currentSongInfo').innerHTML = infoButton + songText;
-    } else if (globalState.videoId && (globalState.playbackTitle || globalState.playbackArtist)) {
-      const t = globalState.playbackTitle || '제목 미상';
-      const a = globalState.playbackArtist || '아티스트 미상';
-      const infoButton = `<button class="current-info-btn" onclick="openInfoModal('${globalState.videoId}')">&#x24D8;</button>`;
-      const songText = `<span style="font-weight: bold;">${t}</span><span class="muted" style="margin-left: 5px;"> - ${a}</span>`;
-      document.getElementById('currentSongInfo').innerHTML = infoButton + songText;
-    } else {
-      document.getElementById('currentSongInfo').innerHTML = '<span class="muted">현재 재생 중인 곡이 없습니다.</span>';
+  function renderCurrentSongInfo(){
+    const visible=getVisibleList(); const song=visible.find(s=>s.videoId===globalState.videoId);
+    if(song){
+      const btn=`<button class="current-info-btn" onclick="openInfoModal('${song.videoId}')">&#x24D8;</button>`;
+      const text=`<span style="font-weight:bold;">${song.title}</span><span class="muted" style="margin-left:5px;"> - ${song.artist}</span>`;
+      document.getElementById('currentSongInfo').innerHTML=btn+text;
+    }else if(globalState.videoId && (globalState.playbackTitle||globalState.playbackArtist)){
+      const t=globalState.playbackTitle||'제목 미상'; const a=globalState.playbackArtist||'아티스트 미상';
+      const btn=`<button class="current-info-btn" onclick="openInfoModal('${globalState.videoId}')">&#x24D8;</button>`;
+      const text=`<span style="font-weight:bold;">${t}</span><span class="muted" style="margin-left:5px;"> - ${a}</span>`;
+      document.getElementById('currentSongInfo').innerHTML=btn+text;
+    }else{
+      document.getElementById('currentSongInfo').innerHTML='<span class="muted">현재 재생 중인 곡이 없습니다.</span>';
     }
     renderCurrentSongNotes();
   }
 
-  async function renderCurrentSongNotes() {
-    currentSongNotesEl.innerHTML = '<span class="muted">정보를 불러오는 중...</span>';
-    const videoId = globalState.videoId;
-    if (!videoId || !authed) { currentSongNotesEl.innerHTML = '<span class="muted">작성된 정보가 없습니다.</span>'; return; }
-
-    const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(videoId);
-    try {
-      const docSnap = await docRef.get();
-      if (docSnap.exists) {
-        const data = docSnap.data();
-        const uploader = data.uploader || '알 수 없음';
-        const info = data.info || '작성된 정보가 없습니다.';
-        const comment = data.comment || '작성된 댓글이 없습니다.';
-        currentSongNotesEl.innerHTML = `
-          <p><strong>올린 사람:</strong> ${uploader}</p>
-          <p><strong>노래 정보:</strong> ${info}</p>
-          <p><strong>댓글:</strong> ${comment}</p>
-        `;
-      } else {
-        currentSongNotesEl.innerHTML = '<span class="muted">작성된 정보가 없습니다.</span>';
-      }
-    } catch(e) {
-      console.error(e);
-      currentSongNotesEl.innerHTML = '<span class="muted">정보를 불러오는 데 실패했습니다.</span>';
-    }
+  async function renderCurrentSongNotes(){
+    currentSongNotesEl.innerHTML='<span class="muted">정보를 불러오는 중...</span>';
+    const videoId=globalState.videoId;
+    if(!videoId || !authed){ currentSongNotesEl.innerHTML='<span class="muted">작성된 정보가 없습니다.</span>'; return; }
+    const docRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(videoId);
+    try{
+      const snap=await docRef.get();
+      if(snap.exists){
+        const d=snap.data(); const u=d.uploader||'알 수 없음'; const info=d.info||'작성된 정보가 없습니다.'; const c=d.comment||'작성된 댓글이 없습니다.';
+        currentSongNotesEl.innerHTML=`<p><strong>올린 사람:</strong> ${u}</p><p><strong>노래 정보:</strong> ${info}</p><p><strong>댓글:</strong> ${c}</p>`;
+      }else{ currentSongNotesEl.innerHTML='<span class="muted">작성된 정보가 없습니다.</span>'; }
+    }catch(e){ console.error(e); currentSongNotesEl.innerHTML='<span class="muted">정보를 불러오는 데 실패했습니다.</span>'; }
   }
 
-  function checkBusterCallCooldown() {
-    const now = Date.now();
-    const remain = globalState.lastBusterCallTimestamp + globalState.busterCallCoolDown - now;
-    if (remain > 0) {
-      const sec = Math.ceil(remain / 1000);
-      busterCallToggleBtn.disabled = true;
-      busterCallToggleBtn.textContent = `버스터콜 (${sec}초)`;
-      setTimeout(checkBusterCallCooldown, 1000);
-    } else {
-      busterCallToggleBtn.disabled = false;
-      busterCallToggleBtn.textContent = '버스터콜';
-    }
+  function checkBusterCallCooldown(){
+    const now=Date.now(); const remain=globalState.lastBusterCallTimestamp+globalState.busterCallCoolDown-now;
+    if(remain>0){ const sec=Math.ceil(remain/1000); busterCallToggleBtn.disabled=true; busterCallToggleBtn.textContent=`버스터콜 (${sec}초)`; setTimeout(checkBusterCallCooldown,1000); }
+    else{ busterCallToggleBtn.disabled=false; busterCallToggleBtn.textContent='버스터콜'; }
   }
 
-  function openInfoModal(videoId) {
-    const songItem = globalState.playlist.find(item => item.videoId === videoId);
-    if (songItem) { songTitleInput.value = songItem.title; artistInput.value = songItem.artist; }
-    else { songTitleInput.value = globalState.playbackTitle || ''; artistInput.value = globalState.playbackArtist || ''; }
-    const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(videoId);
-    docRef.get().then(docSnap => {
-      if (docSnap.exists) {
-        const data = docSnap.data();
-        uploaderInput.value = data.uploader || '';
-        infoTextarea.value = data.info || '';
-        commentTextarea.value = data.comment || '';
-      } else {
-        uploaderInput.value = ''; infoTextarea.value = ''; commentTextarea.value = '';
-      }
-    }).catch(e => { console.error(e); uploaderInput.value = ''; infoTextarea.value = 'Failed to load note.'; commentTextarea.value = ''; });
-    infoModal.style.display = 'flex';
-    window.currentInfoVideoId = videoId;
+  function openInfoModal(videoId){
+    const songItem=globalState.playlist.find(i=>i.videoId===videoId);
+    if(songItem){ songTitleInput.value=songItem.title; artistInput.value=songItem.artist; }
+    else{ songTitleInput.value=globalState.playbackTitle||''; artistInput.value=globalState.playbackArtist||''; }
+    const docRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(videoId);
+    docRef.get().then(s=>{
+      if(s.exists){ const d=s.data(); uploaderInput.value=d.uploader||''; infoTextarea.value=d.info||''; commentTextarea.value=d.comment||''; }
+      else{ uploaderInput.value=''; infoTextarea.value=''; commentTextarea.value=''; }
+    }).catch(e=>{ console.error(e); uploaderInput.value=''; infoTextarea.value='Failed to load note.'; commentTextarea.value=''; });
+    infoModal.style.display='flex'; window.currentInfoVideoId=videoId;
   }
-  function closeInfoModal() { infoModal.style.display = 'none'; window.currentInfoVideoId = null; }
+  function closeInfoModal(){ infoModal.style.display='none'; window.currentInfoVideoId=null; }
 
-  async function saveInfo() {
-    const currentInfoVideoId = window.currentInfoVideoId;
-    if (!currentInfoVideoId || !authed) return;
-    const newTitle = songTitleInput.value.trim();
-    const newArtist = artistInput.value.trim();
-
-    const newPlaylist = [...globalState.playlist];
-    const songIndex = newPlaylist.findIndex(item => item.videoId === currentInfoVideoId);
-    if (songIndex !== -1) {
-      newPlaylist[songIndex].title = newTitle;
-      newPlaylist[songIndex].artist = newArtist;
-      updatePlaylist(newPlaylist);
-    } else {
-      if (globalState.videoId === currentInfoVideoId) {
-        globalState.playbackTitle = newTitle || globalState.playbackTitle;
-        globalState.playbackArtist = newArtist || globalState.playbackArtist;
-        renderCurrentSongInfo();
-      }
-    }
-
-    const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(currentInfoVideoId);
-    try {
-      await docRef.set({
-        uploader: uploaderInput.value.trim(),
-        info: infoTextarea.value.trim(),
-        comment: commentTextarea.value.trim(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-      showMessage("노트가 저장되었습니다!", 'ok');
-      closeInfoModal();
-    } catch(e) {
-      console.error(e);
-      showMessage("노트 저장 실패: " + e.message, 'error');
-    }
+  async function saveInfo(){
+    const id=window.currentInfoVideoId; if(!id || !authed) return;
+    const newTitle=songTitleInput.value.trim(); const newArtist=artistInput.value.trim();
+    const np=[...globalState.playlist]; const idx=np.findIndex(i=>i.videoId===id);
+    if(idx!==-1){ np[idx].title=newTitle; np[idx].artist=newArtist; updatePlaylist(np); }
+    else{ if(globalState.videoId===id){ globalState.playbackTitle=newTitle||globalState.playbackTitle; globalState.playbackArtist=newArtist||globalState.playbackArtist; renderCurrentSongInfo(); } }
+    const ref=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(id);
+    try{
+      await ref.set({uploader:uploaderInput.value.trim(), info:infoTextarea.value.trim(), comment:commentTextarea.value.trim(), updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+      showMessage("노트가 저장되었습니다!",'ok'); closeInfoModal();
+    }catch(e){ console.error(e); showMessage("노트 저장 실패: "+e.message,'error'); }
   }
 
-  async function fetchVideoDetails(videoId) {
-    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`;
-    const response = await fetch(apiUrl);
-    if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    const data = await response.json();
-    if (data.items && data.items.length > 0) {
-      const s = data.items[0].snippet;
-      return { title: s.title, artist: s.channelTitle };
-    }
+  async function fetchVideoDetails(videoId){
+    const apiUrl=`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`;
+    const r=await fetch(apiUrl); if(!r.ok) throw new Error(`API Error: ${r.status} ${r.statusText}`);
+    const d=await r.json(); if(d.items && d.items.length>0){ const s=d.items[0].snippet; return {title:s.title, artist:s.channelTitle}; }
     throw new Error("Failed to find video information.");
   }
 
-  function getVideoId(url) {
-    if (url.length === 11 && !url.includes(' ')) return url;
-    url = url.replace('music.youtube.com', 'www.youtube.com');
-    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
-    const match = url.match(regex);
-    return (match && match[1]) ? match[1] : null;
+  function getVideoId(url){
+    if(url.length===11 && !url.includes(' ')) return url;
+    url=url.replace('music.youtube.com','www.youtube.com');
+    const re=/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const m=url.match(re); return (m && m[1])?m[1]:null;
   }
 
-  async function searchYouTubeAndAddSong(query) {
-    if (!query) { showMessage("검색어를 입력해주세요.", 'error'); return; }
-    const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`;
-    try {
-      const response = await fetch(apiUrl);
-      if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
-      const data = await response.json();
-      if (data.items && data.items.length > 0) {
-        const item = data.items[0];
-        const videoId = item.id.videoId;
-        const title = item.snippet.title;
-        const artist = item.snippet.channelTitle;
-        const newPlaylist = [...globalState.playlist, { title, artist, videoId, createdAt: new Date() }];
-        updatePlaylist(newPlaylist);
-        urlInput.value = '';
-        showMessage('검색 결과가 성공적으로 추가되었습니다.', 'ok');
-      } else {
-        throw new Error("검색 결과가 없습니다.");
-      }
-    } catch (e) {
-      console.error(e);
-      showMessage("검색에 실패했습니다: " + e.message + ". 수동으로 입력해주세요.", 'error');
-      isManuallyAdding = true;
-      manualInputDiv.style.display = 'block';
-      addBtn.textContent = '수동 추가';
-    } finally {
-      addBtn.disabled = false;
+  async function searchYouTubeAndAddSong(query){
+    if(!query){ showMessage("검색어를 입력해주세요.",'error'); return; }
+    const apiUrl=`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`;
+    try{
+      const r=await fetch(apiUrl); if(!r.ok) throw new Error(`API Error: ${r.status} ${r.statusText}`);
+      const d=await r.json();
+      if(d.items && d.items.length>0){
+        const it=d.items[0]; const videoId=it.id.videoId; const title=it.snippet.title; const artist=it.snippet.channelTitle;
+        const np=[...globalState.playlist, {title,artist,videoId,createdAt:new Date()}]; updatePlaylist(np); urlInput.value=''; showMessage('검색 결과가 성공적으로 추가되었습니다.','ok');
+      }else{ throw new Error("검색 결과가 없습니다."); }
+    }catch(e){
+      console.error(e); showMessage("검색에 실패했습니다: "+e.message+" . 수동으로 입력해주세요.",'error');
+      isManuallyAdding=true; manualInputDiv.style.display='block'; addBtn.textContent='수동 추가';
+    }finally{ addBtn.disabled=false; }
+  }
+
+  function playVideo(index){
+    const list=getVisibleList(); if(!list.length) return;
+    let i=Math.max(0, Math.min(index, list.length-1)); const song=list[i];
+    if(song && song.videoId && isYoutubeApiReady){ player.loadVideoById(song.videoId); updatePlayingSong(song.videoId); globalState.playbackTitle=song.title; globalState.playbackArtist=song.artist; if(globalState.isShuffleMode){ globalState.shuffleDeck=globalState.shuffleDeck.filter(id=>id!==song.videoId); } }
+  }
+
+  function playNext(){
+    if(globalState.isShuffleMode){
+      if(globalState.shuffleDeck.length===0) rebuildShuffleDeck();
+      const nextId=globalState.shuffleDeck.shift();
+      if(nextId){ const meta=getVisibleList().find(s=>s.videoId===nextId); if(isYoutubeApiReady) player.loadVideoById(nextId); if(meta){ globalState.playbackTitle=meta.title; globalState.playbackArtist=meta.artist; } updatePlayingSong(nextId); return; }
     }
+    const list=getVisibleList(); if(!list.length) return; const idx=(globalState.currentPlayingIndex+1)%list.length; playVideo(idx);
   }
 
-  function playVideo(index) {
-    const list = getVisibleList();
-    if (!list.length) return;
-    let i = Math.max(0, Math.min(index, list.length - 1));
-    const song = list[i];
-    if (song && song.videoId && isYoutubeApiReady) {
-      player.loadVideoById(song.videoId);
-      updatePlayingSong(song.videoId);
-      globalState.playbackTitle = song.title;
-      globalState.playbackArtist = song.artist;
-      if (globalState.isShuffleMode) {
-        globalState.shuffleDeck = globalState.shuffleDeck.filter(id => id !== song.videoId);
-      }
-    }
+  function playPrev(){
+    if(globalState.isShuffleMode){ showMessage("셔플 모드에서 이전 곡은 지원하지 않습니다.",'error'); return; }
+    const list=getVisibleList(); if(!list.length) return; const idx=(globalState.currentPlayingIndex-1+list.length)%list.length; playVideo(idx);
   }
 
-  function playNext() {
-    if (globalState.isShuffleMode) {
-      if (globalState.shuffleDeck.length === 0) rebuildShuffleDeck();
-      const nextId = globalState.shuffleDeck.shift();
-      if (nextId) {
-        const meta = getVisibleList().find(s => s.videoId === nextId);
-        if (isYoutubeApiReady) player.loadVideoById(nextId);
-        if (meta){ globalState.playbackTitle=meta.title; globalState.playbackArtist=meta.artist; }
-        updatePlayingSong(nextId);
-        return;
-      }
-    }
-    const list = getVisibleList();
-    if (!list.length) return;
-    const idx = (globalState.currentPlayingIndex + 1) % list.length;
-    playVideo(idx);
+  function togglePlayerVisibility(){
+    globalState.isPlayerVisible=!globalState.isPlayerVisible; togglePlayerBtn.classList.toggle('active', !globalState.isPlayerVisible);
+    if(globalState.isPlayerVisible){ playerContainer.style.height='auto'; playerContainer.style.opacity='1'; } else { playerContainer.style.height='0'; playerContainer.style.opacity='0'; }
   }
 
-  function playPrev() {
-    if (globalState.isShuffleMode) {
-      showMessage("셔플 모드에서 이전 곡은 지원하지 않습니다.", 'error');
-      return;
-    }
-    const list = getVisibleList();
-    if (!list.length) return;
-    const idx = (globalState.currentPlayingIndex - 1 + list.length) % list.length;
-    playVideo(idx);
-  }
-
-  function togglePlayerVisibility() {
-    globalState.isPlayerVisible = !globalState.isPlayerVisible;
-    togglePlayerBtn.classList.toggle('active', !globalState.isPlayerVisible);
-    if (globalState.isPlayerVisible) { playerContainer.style.height = 'auto'; playerContainer.style.opacity = '1'; }
-    else { playerContainer.style.height = '0'; playerContainer.style.opacity = '0'; }
-  }
-
-  function wireUI() {
-    addBtn.addEventListener('click', async () => {
-      const inputVal = urlInput.value.trim();
-      addBtn.textContent = '불러오는 중...';
-      addBtn.disabled = true;
-
-      if (isManuallyAdding) {
-        const videoId = getVideoId(inputVal);
-        const title = manualTitleInput.value.trim();
-        const artist = manualArtistInput.value.trim();
-        if (!videoId) { showMessage("유효한 유튜브 링크 또는 ID를 입력해주세요.", 'error'); addBtn.disabled=false; addBtn.textContent='추가'; return; }
-        if (!title || !artist) { showMessage("제목과 아티스트를 모두 입력해주세요.", 'error'); addBtn.disabled=false; addBtn.textContent='추가'; return; }
-        const newPlaylist = [...globalState.playlist, { title, artist, videoId, createdAt: new Date() }];
-        updatePlaylist(newPlaylist);
-        urlInput.value = ''; manualTitleInput.value = ''; manualArtistInput.value = '';
-        isManuallyAdding = false; manualInputDiv.style.display = 'none'; addBtn.textContent = '추가';
-        showMessage('곡이 성공적으로 추가되었습니다.', 'ok');
-      } else {
-        const videoId = getVideoId(inputVal);
-        if (videoId) {
-          try {
-            const videoDetails = await fetchVideoDetails(videoId);
-            const newPlaylist = [...globalState.playlist, { title: videoDetails.title, artist: videoDetails.artist, videoId, createdAt: new Date() }];
-            updatePlaylist(newPlaylist);
-            urlInput.value = '';
-            showMessage('곡이 성공적으로 추가되었습니다.', 'ok');
-          } catch (e) {
-            console.error(e);
-            showMessage("동영상 정보를 가져오는 데 실패했습니다. 수동으로 입력해주세요.", 'error');
-            isManuallyAdding = true;
-            manualInputDiv.style.display = 'block';
-            addBtn.textContent = '수동 추가';
+  function wireUI(){
+    addBtn.addEventListener('click', async ()=>{
+      const inputVal=urlInput.value.trim(); addBtn.textContent='불러오는 중...'; addBtn.disabled=true;
+      if(isManuallyAdding){
+        const videoId=getVideoId(inputVal); const title=manualTitleInput.value.trim(); const artist=manualArtistInput.value.trim();
+        if(!videoId){ showMessage("유효한 유튜브 링크 또는 ID를 입력해주세요.",'error'); addBtn.disabled=false; addBtn.textContent='추가'; return; }
+        if(!title||!artist){ showMessage("제목과 아티스트를 모두 입력해주세요.",'error'); addBtn.disabled=false; addBtn.textContent='추가'; return; }
+        const np=[...globalState.playlist, {title,artist,videoId,createdAt:new Date()}]; updatePlaylist(np);
+        urlInput.value=''; manualTitleInput.value=''; manualArtistInput.value=''; isManuallyAdding=false; manualInputDiv.style.display='none'; addBtn.textContent='추가'; showMessage('곡이 성공적으로 추가되었습니다.','ok');
+      }else{
+        const videoId=getVideoId(inputVal);
+        if(videoId){
+          try{
+            const v=await fetchVideoDetails(videoId);
+            const np=[...globalState.playlist, {title:v.title, artist:v.artist, videoId, createdAt:new Date()}];
+            updatePlaylist(np); urlInput.value=''; showMessage('곡이 성공적으로 추가되었습니다.','ok');
+          }catch(e){
+            console.error(e); showMessage("동영상 정보를 가져오는 데 실패했습니다. 수동으로 입력해주세요.",'error');
+            isManuallyAdding=true; manualInputDiv.style.display='block'; addBtn.textContent='수동 추가';
           }
-        } else {
+        }else{
           await searchYouTubeAndAddSong(inputVal);
         }
       }
-      addBtn.disabled = false;
-      addBtn.textContent = '추가';
+      addBtn.disabled=false; addBtn.textContent='추가';
     });
 
-    shuffleBtn.addEventListener('click', () => {
-      globalState.isShuffleMode = !globalState.isShuffleMode;
-      shuffleBtn.classList.toggle('active', globalState.isShuffleMode);
-      if (globalState.isShuffleMode) {
-        globalState.likeSortMode = 0;
-        likeSortBtn.classList.remove('most-liked','user-liked');
-        rebuildShuffleDeck();
-        showMessage("셔플 모드: 나온 곡은 재등장하지 않습니다.", 'info');
-      } else {
-        showMessage("셔플 모드가 비활성화되었습니다.", 'info');
-      }
+    shuffleBtn.addEventListener('click', ()=>{
+      globalState.isShuffleMode=!globalState.isShuffleMode; shuffleBtn.classList.toggle('active', globalState.isShuffleMode);
+      if(globalState.isShuffleMode){ globalState.likeSortMode=0; likeSortBtn.classList.remove('most-liked','user-liked'); rebuildShuffleDeck(); showMessage("셔플 모드: 나온 곡은 재등장하지 않습니다.",'info'); }
+      else{ showMessage("셔플 모드가 비활성화되었습니다.",'info'); }
       updatePlayingSong(globalState.videoId);
     });
 
-    // 따봉 정렬 3단계
-    likeSortBtn.addEventListener('click', () => {
-      globalState.likeSortMode = (globalState.likeSortMode + 1) % 3; // 0->1->2->0
+    likeSortBtn.addEventListener('click', ()=>{
+      globalState.likeSortMode=(globalState.likeSortMode+1)%3;
       likeSortBtn.classList.remove('most-liked','user-liked');
-      if (globalState.likeSortMode === 1) {
-        likeSortBtn.classList.add('most-liked');
-        showMessage("따봉 많은 순으로 정렬합니다.", 'info');
-      } else if (globalState.likeSortMode === 2) {
-        likeSortBtn.classList.add('user-liked');
-        showMessage("내가 누른 곡을 상단에 올립니다.", 'info');
-      } else {
-        showMessage("최신순으로 정렬합니다.", 'info');
-      }
-      globalState.isShuffleMode = false;
-      shuffleBtn.classList.remove('active');
-      renderList();
-      updatePlayingSong(globalState.videoId);
+      if(globalState.likeSortMode===1){ likeSortBtn.classList.add('most-liked'); showMessage("따봉 많은 순으로 정렬합니다.",'info'); }
+      else if(globalState.likeSortMode===2){ likeSortBtn.classList.add('user-liked'); showMessage("내가 누른 곡을 상단에 올립니다.",'info'); }
+      else{ showMessage("최신순으로 정렬합니다.",'info'); }
+      globalState.isShuffleMode=false; shuffleBtn.classList.remove('active');
+      renderList(); updatePlayingSong(globalState.videoId);
     });
 
-    busterCallToggleBtn.addEventListener('click', () => {
-      globalState.isBusterCallMode = !globalState.isBusterCallMode;
-      busterCallToggleBtn.classList.toggle('active', globalState.isBusterCallMode);
-      busterCallToggleBtn.textContent = "버스터콜";
-      showMessage(globalState.isBusterCallMode ? "버스터콜 모드가 활성화되었습니다. 재생목록을 눌러 버스터콜을 시작하세요." : "버스터콜 모드가 비활성화되었습니다.", 'info');
+    busterCallToggleBtn.addEventListener('click', ()=>{
+      globalState.isBusterCallMode=!globalState.isBusterCallMode; busterCallToggleBtn.classList.toggle('active', globalState.isBusterCallMode);
+      busterCallToggleBtn.textContent="버스터콜";
+      showMessage(globalState.isBusterCallMode?"버스터콜 모드가 활성화되었습니다. 재생목록을 눌러 버스터콜을 시작하세요.":"버스터콜 모드가 비활성화되었습니다.",'info');
     });
 
-    prevSongBtn.addEventListener('click', () => { playPrev(); showMessage("이전 곡으로 넘어갑니다.", 'info'); });
-    nextSongBtn.addEventListener('click', () => { playNext(); showMessage("다음 곡으로 넘어갑니다.", 'info'); });
+    prevSongBtn.addEventListener('click', ()=>{ playPrev(); showMessage("이전 곡으로 넘어갑니다.",'info'); });
+    nextSongBtn.addEventListener('click', ()=>{ playNext(); showMessage("다음 곡으로 넘어갑니다.",'info'); });
     togglePlayerBtn.addEventListener('click', togglePlayerVisibility);
 
     modalCloseBtn.addEventListener('click', closeInfoModal);
     saveInfoBtn.addEventListener('click', saveInfo);
-    window.addEventListener('click', (event) => { if (event.target === infoModal) closeInfoModal(); });
+    window.addEventListener('click',(e)=>{ if(e.target===infoModal) closeInfoModal(); });
   }
 
-  // 버스터콜
-  function busterCall(videoId) {
-    if (!authed) { showMessage("로그인되지 않았습니다.", 'error'); return; }
-    try {
-      const inList = globalState.playlist.find(s => s.videoId === videoId);
-      const title = inList?.title || globalState.playbackTitle || '';
-      const artist = inList?.artist || globalState.playbackArtist || '';
+  function busterCall(videoId){
+    if(!authed){ showMessage("로그인되지 않았습니다.",'error'); return; }
+    try{
+      const inList=globalState.playlist.find(s=>s.videoId===videoId);
+      const title=inList?.title||globalState.playbackTitle||''; const artist=inList?.artist||globalState.playbackArtist||'';
+      db.collection('artifacts').doc(appId).collection('public').doc('data').collection('playback_state').doc('main_state')
+        .set({videoId,timestamp:0,title,artist,lastUpdatedBy:userId,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+      globalState.playbackTitle=title||null; globalState.playbackArtist=artist||null;
 
-      db.collection('artifacts').doc(appId).collection('public')
-        .doc('data').collection('playback_state').doc('main_state')
-        .set({ videoId, timestamp: 0, title, artist, lastUpdatedBy: userId,
-               updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      const endTS=firebase.firestore.Timestamp.fromMillis(Date.now()+10000);
+      db.collection('artifacts').doc(appId).collection('public').doc('data').collection('buster_call_state').doc('main_state')
+        .set({showBusterCall:true,lastBusterCallTimestamp:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:userId,videoId,endTimestamp:endTS},{merge:true});
 
-      globalState.playbackTitle = title || null;
-      globalState.playbackArtist = artist || null;
-
-      const endTimestamp = firebase.firestore.Timestamp.fromMillis(Date.now() + 10000);
-      db.collection('artifacts').doc(appId).collection('public')
-        .doc('data').collection('buster_call_state').doc('main_state')
-        .set({ showBusterCall: true, lastBusterCallTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
-               updatedBy: userId, videoId, endTimestamp }, { merge: true });
-
-      if (isYoutubeApiReady) { player.loadVideoById(videoId); player.playVideo(); }
-
-      globalState.videoId = videoId;
-      const visibleList = getVisibleList();
-      const newIndex = visibleList.findIndex(s => s.videoId === videoId);
-      globalState.currentPlayingIndex = (newIndex !== -1) ? newIndex : 0;
-      renderCurrentSongInfo();
-
-      if (globalState.isShuffleMode) {
-        globalState.shuffleDeck = globalState.shuffleDeck.filter(id => id !== videoId);
-      }
-    } catch (e) {
-      console.error(e);
-      showMessage("버스터콜에 실패했습니다. " + e.message, 'error');
-    }
+      if(isYoutubeApiReady){ player.loadVideoById(videoId); player.playVideo(); }
+      globalState.videoId=videoId; const list=getVisibleList(); const idx=list.findIndex(s=>s.videoId===videoId);
+      globalState.currentPlayingIndex=(idx!==-1)?idx:0; renderCurrentSongInfo();
+      if(globalState.isShuffleMode){ globalState.shuffleDeck=globalState.shuffleDeck.filter(id=>id!==videoId); }
+    }catch(e){ console.error(e); showMessage("버스터콜에 실패했습니다. "+e.message,'error'); }
   }
 
-  window.openInfoModal = openInfoModal;
-  window.onload = function() { boot(); };
+  window.openInfoModal=openInfoModal;
+  window.onload=function(){ boot(); };
 </script>
 </body>
 </html>
