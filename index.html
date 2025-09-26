@@ -15,8 +15,8 @@
     .btn-toggle { background: #555; }
     .btn-toggle.active { background: #fc8181; }
     .btn-sort { background-color: #555; color: #fff; }
-    .btn-sort.most-liked { background-color: #f6ad55; } /* 노랑: 따봉많은순 */
-    .btn-sort.user-liked { background-color: #48bb78; } /* 초록: 내따봉 우선 */
+    .btn-sort.most-liked { background-color: #f6ad55; }
+    .btn-sort.user-liked { background-color: #48bb78; }
 
     .ok { color: #81e6d9; }
     .fail { color: #fc8181; }
@@ -29,13 +29,9 @@
     .item .delete-btn { background: none; border: none; color: #fc8181; cursor: pointer; font-size: 1.2em; line-height: 1; margin-left: 10px; opacity: 0.7; transition: opacity 0.2s; }
     .item .delete-btn:hover { opacity: 1; }
     .item .info-icon { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 1.2em; margin-right: 5px; }
-
-    /* 여기만 변경: 기본 검정, 누르면 노랑 */
-    .item .like-btn { background: none; border: none; cursor: pointer; font-size: 1.2em; margin-right: 5px; transition: transform .05s ease; color: #000; }
+    .item .like-btn { background: none; border: none; cursor: pointer; font-size: 1.2em; margin-right: 5px; transition: transform .05s ease; }
     .item .like-btn:active { transform: scale(0.96); }
-    .item .like-btn.liked { color: #f6e07a; } /* 클릭 시 노랑 */
     .like-count { font-size: 0.9em; color: #a0aec0; margin-left: -5px; margin-right: 5px;}
-
     .uploader-btn { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 0.9em; margin-right: 5px; padding: 0; }
     .video-player { aspect-ratio: 16 / 9; width: 100%; max-width: 800px; margin: 8px auto; border-radius: 8px; overflow: hidden; position: relative; }
     .main-title { text-align: center; }
@@ -249,6 +245,7 @@
     }catch(e){ console.error(e); return; }
 
     globalState.localLikes=loadLocalLikes();
+
     startRealtime(); wireUI();
   }
 
@@ -391,9 +388,9 @@
 
       const likeBtn=document.createElement('button');
       const hasLocalLiked=!!globalState.localLikes[item.videoId];
-      likeBtn.className=`like-btn${hasLocalLiked?' liked':''}`;
+      likeBtn.className='like-btn';
       likeBtn.setAttribute('aria-pressed',hasLocalLiked?'true':'false');
-      likeBtn.innerHTML='👍'; // 이모지는 하나만 쓰고 색만 CSS로 바꿈
+      likeBtn.textContent = hasLocalLiked ? '👍' : '👍🏿';   // 이모지로 직접 전환
       likeBtn.addEventListener('click',(e)=>{ e.stopPropagation(); handleLike(item.videoId); });
 
       const countSpan=document.createElement('span'); countSpan.className='like-count';
@@ -439,8 +436,10 @@
     if(was) delete globalState.localLikes[videoId]; else globalState.localLikes[videoId]=true;
     saveLocalLikes(globalState.localLikes);
 
-    renderList(); // 색 즉시 반영
+    // 즉시 아이콘 갱신
+    renderList();
 
+    // 서버 카운트 갱신
     const docRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('song_likes').doc(videoId);
     try{
       await db.runTransaction(async(tr)=>{
@@ -484,17 +483,18 @@
   }
 
   async function renderCurrentSongNotes(){
-    currentSongNotesEl.innerHTML='<span class="muted">정보를 불러오는 중...</span>';
+    const el=currentSongNotesEl;
+    el.innerHTML='<span class="muted">정보를 불러오는 중...</span>';
     const videoId=globalState.videoId;
-    if(!videoId || !authed){ currentSongNotesEl.innerHTML='<span class="muted">작성된 정보가 없습니다.</span>'; return; }
-    const docRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(videoId);
+    if(!videoId || !authed){ el.innerHTML='<span class="muted">작성된 정보가 없습니다.</span>'; return; }
+    const ref=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(videoId);
     try{
-      const snap=await docRef.get();
+      const snap=await ref.get();
       if(snap.exists){
         const d=snap.data(); const u=d.uploader||'알 수 없음'; const info=d.info||'작성된 정보가 없습니다.'; const c=d.comment||'작성된 댓글이 없습니다.';
-        currentSongNotesEl.innerHTML=`<p><strong>올린 사람:</strong> ${u}</p><p><strong>노래 정보:</strong> ${info}</p><p><strong>댓글:</strong> ${c}</p>`;
-      }else{ currentSongNotesEl.innerHTML='<span class="muted">작성된 정보가 없습니다.</span>'; }
-    }catch(e){ console.error(e); currentSongNotesEl.innerHTML='<span class="muted">정보를 불러오는 데 실패했습니다.</span>'; }
+        el.innerHTML=`<p><strong>올린 사람:</strong> ${u}</p><p><strong>노래 정보:</strong> ${info}</p><p><strong>댓글:</strong> ${c}</p>`;
+      }else{ el.innerHTML='<span class="muted">작성된 정보가 없습니다.</span>'; }
+    }catch(e){ console.error(e); el.innerHTML='<span class="muted">정보를 불러오는 데 실패했습니다.</span>'; }
   }
 
   function checkBusterCallCooldown(){
@@ -507,8 +507,8 @@
     const songItem=globalState.playlist.find(i=>i.videoId===videoId);
     if(songItem){ songTitleInput.value=songItem.title; artistInput.value=songItem.artist; }
     else{ songTitleInput.value=globalState.playbackTitle||''; artistInput.value=globalState.playbackArtist||''; }
-    const docRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(videoId);
-    docRef.get().then(s=>{
+    const ref=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(videoId);
+    ref.get().then(s=>{
       if(s.exists){ const d=s.data(); uploaderInput.value=d.uploader||''; infoTextarea.value=d.info||''; commentTextarea.value=d.comment||''; }
       else{ uploaderInput.value=''; infoTextarea.value=''; commentTextarea.value=''; }
     }).catch(e=>{ console.error(e); uploaderInput.value=''; infoTextarea.value='Failed to load note.'; commentTextarea.value=''; });
