@@ -51,8 +51,9 @@
     #currentSongNotes { border-top:1px solid #444; margin-top:10px; padding-top:10px;}
     #currentSongNotes p { margin:0 0 10px 0; color:#ccc;}
     .song-details { flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; display:flex; align-items:center;}
-    .song-info-container { display:flex; align-items:center; justify-content:center; margin-top:10px; gap:10px; font-size:1.2em; font-weight:bold; text-align:center;}
-    .song-info-text { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 120px); display:flex; align-items:center; justify-content:center;}
+    .song-info-container { display:flex; align-items:center; justify-content:center; margin-top:10px; gap:10px; font-size:1.1em; font-weight:bold; text-align:center;}
+    .song-info-text { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 180px); display:flex; align-items:center; justify-content:center;}
+    .current-like { display:flex; align-items:center; gap:6px;}
     .current-info-btn { background:none; border:none; color:#63b3ed; cursor:pointer; font-size:1.2em; margin-right:5px; padding:0; width:40px; height:40px; display:flex; justify-content:center; align-items:center;}
     .new-tag { background-color:#f6ad55; color:#fff; font-size:.7em; font-weight:bold; padding:2px 6px; border-radius:999px; margin-left:8px; vertical-align:middle; text-transform:uppercase;}
   </style>
@@ -62,7 +63,6 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
-<audio id="dingdong-sound" src="https://cdn.pixabay.com/audio/2021/08/04/audio_33e07f59d5.mp3" preload="auto" volume="0.3"></audio>
 <div id="message-box" class="message-box"></div>
 <div class="wrap">
   <div class="main-title">
@@ -83,6 +83,10 @@
       <button id="prev-song-btn-inline" class="btn">&lt;</button>
       <div id="currentSongInfo" class="song-info-text">
         <span class="muted">현재 재생 중인 곡이 없습니다.</span>
+      </div>
+      <div class="current-like">
+        <button id="current-like-btn" class="like-btn" disabled>👍🏿</button>
+        <span id="current-like-count" class="like-count">0</span>
       </div>
       <button id="next-song-btn-inline" class="btn">&gt;</button>
     </div>
@@ -160,6 +164,10 @@
   let userId=null, authed=false, db, player, isYoutubeApiReady=false;
   let isManuallyAdding=false;
 
+  // ---- 좋아요 동기화 제어 ----
+  let likesLoaded=false;
+  const pendingLike=new Set();
+
   // ---- DOM ----
   const urlInput=document.getElementById('url');
   const addBtn=document.getElementById('add');
@@ -175,6 +183,8 @@
   const currentSongNotesEl=document.getElementById('currentSongNotes');
   const togglePlayerBtn=document.getElementById('togglePlayerBtn');
   const playerContainer=document.getElementById('player-container');
+  const currentLikeBtn=document.getElementById('current-like-btn');
+  const currentLikeCountEl=document.getElementById('current-like-count');
 
   const infoModal=document.getElementById('infoModal');
   const songTitleInput=document.getElementById('songTitleInput');
@@ -256,7 +266,7 @@
         const data=snap.data()||{};
         globalState.playlist = Array.isArray(data.playlist)?data.playlist:[];
         renderList();
-        if(globalState.isShuffleMode) rebuildDeck(); // 최신 상태 반영
+        if(globalState.isShuffleMode) rebuildDeck();
       });
 
     // notes
@@ -270,8 +280,10 @@
     db.collection('artifacts').doc(appId).collection('public').doc('data').collection('song_likes')
       .onSnapshot(ss=>{
         const m={}; ss.docs.forEach(d=>{ m[d.id]=d.data(); });
-        globalState.songLikes=m; renderList();
-        if(globalState.isShuffleMode) rebuildDeck(); // 내 좋아요 변화 반영
+        globalState.songLikes=m;
+        likesLoaded=true;
+        renderList();
+        if(globalState.isShuffleMode) rebuildDeck();
       });
   }
 
@@ -299,17 +311,13 @@
     return list;
   }
 
-  // ---- Deck 구성 규칙 ----
-  // likeSortMode===2 + 셔플ON → [내 좋아요 셔플된 전체] + [나머지 셔플된 전체]
-  // 그 외 셔플ON → 전체 셔플
+  // ---- Deck 구성 ----
   function rebuildDeck(){
     const visibleIds = getVisibleList().map(s=>s.videoId).filter(id=>id!==globalState.videoId);
     if(globalState.likeSortMode===2){
       const likedIds = visibleIds.filter(id=>isLiked(id));
       const otherIds = visibleIds.filter(id=>!isLiked(id));
-      const likedShuffled = shuffleArray(likedIds);
-      const otherShuffled = shuffleArray(otherIds);
-      globalState.deck = [...likedShuffled, ...otherShuffled];
+      globalState.deck = [...shuffleArray(likedIds), ...shuffleArray(otherIds)];
     }else{
       globalState.deck = shuffleArray(visibleIds);
     }
@@ -337,9 +345,10 @@
       const likeBtn=document.createElement('button');
       likeBtn.className='like-btn';
       const mine = isLiked(item.videoId);
+      likeBtn.disabled = !likesLoaded;
       likeBtn.setAttribute('aria-pressed', mine?'true':'false');
       likeBtn.textContent = mine ? '👍' : '👍🏿';
-      likeBtn.addEventListener('click',(e)=>{ e.stopPropagation(); handleLike(item.videoId); });
+      likeBtn.addEventListener('click',(e)=>{ e.stopPropagation(); if(!likesLoaded) return; handleLike(item.videoId); });
 
       const countSpan=document.createElement('span'); countSpan.className='like-count';
       countSpan.textContent=globalState.songLikes[item.videoId]?.likeCount||0;
@@ -376,6 +385,7 @@
     const visible=getVisibleList();
     const song=visible.find(s=>s.videoId===globalState.videoId);
     const el=document.getElementById('currentSongInfo');
+
     if(song){
       const btn=`<button class="current-info-btn" onclick="openInfoModal('${song.videoId}')">&#x24D8;</button>`;
       el.innerHTML = btn + `<span style="font-weight:bold;">${song.title}</span><span class="muted" style="margin-left:5px;"> - ${song.artist}</span>`;
@@ -386,6 +396,15 @@
     }else{
       el.innerHTML='<span class="muted">현재 재생 중인 곡이 없습니다.</span>';
     }
+
+    // 현재 곡 좋아요 버튼/카운트 동기화
+    const vid=globalState.videoId;
+    const mine = vid ? isLiked(vid) : false;
+    currentLikeBtn.disabled = !likesLoaded || !vid;
+    currentLikeBtn.textContent = mine ? '👍' : '👍🏿';
+    currentLikeBtn.onclick = ()=>{ if(!likesLoaded || !vid) return; handleLike(vid); };
+    currentLikeCountEl.textContent = vid ? (globalState.songLikes[vid]?.likeCount||0) : 0;
+
     renderCurrentSongNotes();
   }
 
@@ -421,23 +440,54 @@
     },200);
   }
 
-  // ---- Like toggle (DB만) ----
+  // ---- Like toggle (1회 + 재클릭 취소) ----
   async function handleLike(videoId){
-    if(!userId){ showMessage("로그인되지 않았습니다.",'error'); return; }
+    if(!userId){ showMessage("로그인되지 않았습니다.", 'error'); return; }
+    if(pendingLike.has(videoId)) return;
+    pendingLike.add(videoId);
+
     const docRef=db.collection('artifacts').doc(appId).collection('public').doc('data').collection('song_likes').doc(videoId);
+
     try{
+      let result = { nextCount:0, nextMine:false };
+
       await db.runTransaction(async(tr)=>{
         const snap=await tr.get(docRef);
         let likeCount=0, likedBy={};
         if(snap.exists){ likeCount=snap.data().likeCount||0; likedBy=snap.data().likedBy||{}; }
-        const mine=!!likedBy[userId];
-        if(mine){ likeCount=Math.max(0, likeCount-1); delete likedBy[userId]; showMessage("좋아요 취소"); }
-        else { likeCount++; likedBy[userId]=true; showMessage("좋아요 👍"); }
-        tr.set(docRef,{likeCount, likedBy, lastUpdated:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+
+        const hasLiked=!!likedBy[userId];
+        if(hasLiked){
+          likeCount=Math.max(0, likeCount-1);
+          delete likedBy[userId];
+          showMessage("좋아요 취소");
+        }else{
+          likeCount++;
+          likedBy[userId]=true;
+          showMessage("좋아요 👍");
+        }
+
+        result.nextCount=likeCount;
+        result.nextMine=!hasLiked;
+
+        tr.set(docRef,{ likeCount, likedBy, lastUpdated:firebase.firestore.FieldValue.serverTimestamp() },{merge:true});
       });
+
+      // 낙관적 동기화
+      if(!globalState.songLikes[videoId]) globalState.songLikes[videoId]={};
+      globalState.songLikes[videoId].likeCount = result.nextCount;
+      const lb = { ...(globalState.songLikes[videoId].likedBy||{}) };
+      if(result.nextMine) lb[userId]=true; else delete lb[userId];
+      globalState.songLikes[videoId].likedBy = lb;
+
       renderList();
-      if(globalState.isShuffleMode) rebuildDeck(); // 내 좋아요 변화 즉시 덱 재구성
-    }catch(e){ console.error(e); showMessage("좋아요 실패: "+e.message,'error'); }
+      if(globalState.isShuffleMode) rebuildDeck();
+    }catch(e){
+      console.error(e);
+      showMessage("좋아요 처리 실패: "+e.message, 'error');
+    }finally{
+      pendingLike.delete(videoId);
+    }
   }
 
   // ---- Player ----
@@ -451,7 +501,6 @@
       globalState.currentPlayingIndex=i;
       globalState.playbackTitle=song.title;
       globalState.playbackArtist=song.artist;
-      // 현재 곡 제거
       globalState.deck = globalState.deck.filter(id=>id!==song.videoId);
       renderCurrentSongInfo();
     }
@@ -570,7 +619,7 @@
           globalState.isShuffleMode=false;
           shuffleBtn.classList.remove('active');
         }else{
-          if(globalState.likeSortMode===2) showMessage("내 좋아요 먼저 셔플, 그 다음 나머지");
+          if(globalState.likeSortMode===2) showMessage("내 좋아요 먼저 셔플, 이후 나머지");
           else showMessage("전체 셔플");
         }
       } else {
@@ -586,7 +635,7 @@
       else if(globalState.likeSortMode===2){ likeSortBtn.classList.add('user-liked'); showMessage("내 따봉 우선"); }
       else { showMessage("최신순"); }
       renderList();
-      if(globalState.isShuffleMode) rebuildDeck(); // 셔플 유지 시 덱을 규칙대로 재구성
+      if(globalState.isShuffleMode) rebuildDeck();
     });
 
     prevSongBtn.addEventListener('click', ()=>{ playPrev(); });
