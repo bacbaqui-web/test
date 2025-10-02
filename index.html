@@ -222,11 +222,11 @@
   </div>
 
   <div id="bookmarks-section" class="section-card tab-content text-left">
-    <!-- URL 직접 입력 영역 -->
-    <div class="flex gap-2 mb-4">
+    <!-- URL 직접 입력 영역: 삭제됨 -->
+    <!-- <div class="flex gap-2 mb-4">
       <input type="url" id="urlInput" placeholder="여기에 URL을 직접 입력하세요 (웹페이지, 이미지, 동영상) 또는 인스타그램 퍼가기 코드를 붙여넣으세요" class="flex-grow p-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500">
       <button id="addUrlBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex-shrink-0">북마크 추가</button>
-    </div>
+    </div> -->
 
     <section id="drag-area" class="drag-area rounded-lg p-6 flex items-center justify-center text-center text-[#999] font-medium cursor-pointer" title="클릭하면 클립보드에서 자동 붙여넣기 시도">
       <div>이미지/동영상/일반 페이지 URL 또는 인스타그램 퍼가기 코드를 붙여넣기 또는 드래그하세요. 캡쳐/이미지는 붙여넣기(Ctrl/Cmd+V)를 사용하세요.</div>
@@ -320,9 +320,9 @@
     const modalImage = document.getElementById('modalImage');
     const closeImageModalBtn = document.getElementById('closeImageModalBtn');
     const goToPageBtn = document.getElementById('goToPageBtn');
-    // URL 직접 입력 요소
-    const urlInput = document.getElementById('urlInput');
-    const addUrlBtn = document.getElementById('addUrlBtn');
+    // URL 직접 입력 요소 (제거됨 - 이벤트 핸들러 정리)
+    // const urlInput = document.getElementById('urlInput');
+    // const addUrlBtn = document.getElementById('addUrlBtn');
     // 제목 수정 모달 요소
     const editTitleModal = document.getElementById('editTitleModal');
     const editTitleInput = document.getElementById('editTitleInput');
@@ -415,7 +415,8 @@
     const taskDescriptionInput=document.getElementById('taskDescription');
     const taskDateInput=document.getElementById('taskDate');
 
-    // 북마크 추가 로직 (URL 직접 입력용)
+    // 북마크 추가 로직 (URL 직접 입력용 - 이 함수는 이제 사용되지 않지만, 다른 곳에서 호출될까봐 남겨둡니다. D&D/Paste 로직에서 처리됨)
+    /*
     const handleAddUrl = async () => {
         const inputContent = urlInput.value.trim();
         if (!inputContent) {
@@ -441,6 +442,7 @@
         }
         urlInput.value = ''; // 성공 시 입력 필드 초기화
     };
+    */
 
     // 이벤트 리스너 부착
     const attachEventListeners=()=>{
@@ -472,7 +474,8 @@
       });
 
 
-      // URL 직접 입력 이벤트 리스너
+      // URL 직접 입력 이벤트 리스너 (제거됨 - 이벤트 핸들러 정리)
+      /*
       addUrlBtn.addEventListener('click', handleAddUrl);
       urlInput.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') {
@@ -480,6 +483,7 @@
               handleAddUrl();
           }
       });
+      */
       
       // 제목 수정 모달 이벤트 리스너
       cancelTitleBtn.addEventListener('click', closeEditModal);
@@ -755,7 +759,8 @@
         try {
             const urlObj = new URL(u);
             // http 또는 https 프로토콜을 사용하며, 이미지/비디오/인스타그램 URL이 아닌 경우
-            return (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') && !isImageUrl(u) && !isVideoUrl(u) && !/instagram\.com/.test(u);
+            // **수정된 부분: URL에 . (점)이 포함되어야 유효한 도메인으로 간주합니다.**
+            return (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') && urlObj.hostname.includes('.') && !isImageUrl(u) && !isVideoUrl(u) && !/instagram\.com/.test(u);
         } catch {
             return false;
         }
