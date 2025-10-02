@@ -117,6 +117,26 @@
         word-break: break-all;
     }
     
+    /* 신규 Video title overlay (썸네일 없을 때) */
+    .bookmark-card .video-title-overlay {
+        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(80, 0, 0, 0.7); /* Reddish background for video emphasis */
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        color: white; padding: 10px;
+        text-align: center;
+    }
+    .bookmark-card .video-title-text {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+        word-break: break-all;
+    }
+    .bookmark-card .video-url-text {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        word-break: break-all;
+    }
+    
     /* 인스타그램 스타일 (이제 직접 임베드 코드를 사용하므로 이 스타일은 사용하지 않음) */
     .bookmark-card .instagram-overlay { display: none; } 
     
@@ -320,9 +340,6 @@
     const modalImage = document.getElementById('modalImage');
     const closeImageModalBtn = document.getElementById('closeImageModalBtn');
     const goToPageBtn = document.getElementById('goToPageBtn');
-    // URL 직접 입력 요소 (제거됨 - 이벤트 핸들러 정리)
-    // const urlInput = document.getElementById('urlInput');
-    // const addUrlBtn = document.getElementById('addUrlBtn');
     // 제목 수정 모달 요소
     const editTitleModal = document.getElementById('editTitleModal');
     const editTitleInput = document.getElementById('editTitleInput');
@@ -415,35 +432,6 @@
     const taskDescriptionInput=document.getElementById('taskDescription');
     const taskDateInput=document.getElementById('taskDate');
 
-    // 북마크 추가 로직 (URL 직접 입력용 - 이 함수는 이제 사용되지 않지만, 다른 곳에서 호출될까봐 남겨둡니다. D&D/Paste 로직에서 처리됨)
-    /*
-    const handleAddUrl = async () => {
-        const inputContent = urlInput.value.trim();
-        if (!inputContent) {
-            showAlert('URL 또는 인스타그램 퍼가기 코드를 입력해 주세요.');
-            return;
-        }
-
-        if (isInstagramEmbed(inputContent)) {
-            await window.addInstagramBookmark(inputContent);
-            showFeedbackMessage('인스타그램 게시물 북마크됨');
-        } else if (isImageUrl(inputContent)) {
-            await window.addRemoteImage(inputContent, inputContent);
-            showFeedbackMessage('이미지 URL 북마크됨');
-        } else if (isVideoUrl(inputContent)) {
-            await window.addVideoBookmark(inputContent);
-            showFeedbackMessage('동영상 URL 북마크됨');
-        } else if (isGenericUrl(inputContent)) {
-            await window.addGenericBookmark(inputContent);
-            showFeedbackMessage('페이지 URL 북마크됨');
-        } else {
-            showAlert('유효한 웹페이지, 이미지, 동영상 URL 또는 인스타그램 퍼가기 코드가 아닙니다.');
-            return;
-        }
-        urlInput.value = ''; // 성공 시 입력 필드 초기화
-    };
-    */
-
     // 이벤트 리스너 부착
     const attachEventListeners=()=>{
       const prevMonthBtn=document.getElementById('prevMonthBtn');
@@ -472,18 +460,6 @@
               closeImageModal();
           }
       });
-
-
-      // URL 직접 입력 이벤트 리스너 (제거됨 - 이벤트 핸들러 정리)
-      /*
-      addUrlBtn.addEventListener('click', handleAddUrl);
-      urlInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-              e.preventDefault();
-              handleAddUrl();
-          }
-      });
-      */
       
       // 제목 수정 모달 이벤트 리스너
       cancelTitleBtn.addEventListener('click', closeEditModal);
@@ -636,10 +612,18 @@
              `;
 
         } else if (isVideo && !thumbnail) {
-            // 유튜브 외 다른 동영상이거나 썸네일 추출 실패 시
-            const displayTitle = d.title || (pageUrl.length > 30 ? pageUrl.substring(0, 27) + '...' : pageUrl);
-            iconHtml = `<div class="icon-overlay"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></div>
-                        <div class="icon-text">${displayTitle}</div>`;
+            // **수정된 부분: 썸네일 없는 비디오를 위한 새로운 제목 오버레이 스타일 적용**
+            const displayTitle = d.title || '동영상 북마크 (제목 편집 가능)';
+            const displayUrl = pageUrl.replace(/^https?:\/\//, '').substring(0, 30) + '...';
+            
+            iconHtml = `<div class="video-title-overlay">
+                            <!-- 비디오 아이콘 -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-red-400 mb-2" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg>
+                            <!-- 제목 텍스트 -->
+                            <span class="video-title-text">${displayTitle}</span>
+                            <!-- URL 텍스트 -->
+                            <span class="video-url-text">${displayUrl}</span>
+                        </div>`;
         } else if (!isVideo) {
             // 이미지 북마크인 경우 (썸네일은 이미지 URL 자체)
             iconHtml = `<img src="${imageUrl}" alt="북마크된 이미지" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://placehold.co/100x120/444/fff?text=이미지+오류'"/>`;
@@ -745,7 +729,7 @@
         if (!u) return false;
         try { new URL(u); } catch { return false; }
         // YouTube, Vimeo, 또는 일반적인 동영상 확장자 검사
-        return /youtu\.be|youtube\.com|vimeo\.com|\.(mp4|webm|ogg|mov)(\?|$)/i.test(u);
+        return /youtu\.be|youtube\.com|vimeo\.com|\.(mp4|webm|ogg|mov)(\?|$)|missav\.com/i.test(u);
     }
     
     // 인스타그램 퍼가기 코드 확인 (blockquote 태그를 포함하는지 확인)
