@@ -137,6 +137,25 @@
         word-break: break-all;
     }
     
+    /* 인스타그램 링크 실패 시 (미리보기 시도 실패) */
+    .bookmark-card .instagram-link-fallback {
+        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(29, 161, 242, 0.7); /* Twitter Blue-ish for Social */
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        color: white; padding: 10px;
+        text-align: center;
+    }
+    .bookmark-card .instagram-link-fallback .title {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+    .bookmark-card .instagram-link-fallback .subtitle {
+        font-size: 0.75rem;
+        opacity: 0.8;
+    }
+
+
     /* 인스타그램 스타일 (이제 직접 임베드 코드를 사용하므로 이 스타일은 사용하지 않음) */
     .bookmark-card .instagram-overlay { display: none; } 
     
@@ -270,7 +289,8 @@
     <!-- /정렬 기준 선택 추가 -->
 
     <section id="drag-area" class="drag-area rounded-lg p-6 flex items-center justify-center text-center text-[#999] font-medium cursor-pointer" title="클릭하면 클립보드에서 자동 붙여넣기 시도">
-      <div>이미지/동영상/일반 페이지 URL 또는 인스타그램 퍼가기 코드를 붙여넣기 또는 드래그하세요. 캡쳐/이미지는 붙여넣기(Ctrl/Cmd+V)를 사용하세요.</div>
+      <!-- 수정된 안내 문구: 캐러셀 게시물에 대한 안내 추가 -->
+      <div>**이미지/동영상 URL** 또는 **일반 페이지 URL**을 붙여넣기/드래그하세요. 보안 정책상 이미지 미리보기가 어렵습니다. 인스타그램 등 **미리보기가 필요한 경우 반드시 원본 게시물의 '퍼가기 코드(Embed Code)'**를 사용해 주세요.</div>
     </section>
     <!-- Tailwind Grid 클래스 제거, CSS Masonry 스타일 적용됨 -->
     <section id="image-grid"></section>
@@ -414,7 +434,7 @@
         const newTitle = editTitleInput.value.trim();
         const bookmark = window.currentEditingBookmark;
 
-        if (bookmark.type === 'link' || bookmark.type === 'video' || bookmark.type === 'instagram') {
+        if (bookmark.type === 'link' || bookmark.type === 'video' || bookmark.type === 'instagram' || bookmark.type === 'instagram_link') {
             await window.updateBookmarkTitle(bookmark.id, newTitle);
         }
         
@@ -615,8 +635,9 @@
       sortedBookmarks.forEach(d=>{
         const isVideo = d.type === 'video';
         const isLink = d.type === 'link'; // 일반 페이지 링크
-        const isInstagram = d.type === 'instagram'; // 인스타그램 게시물
-        const isEditable = isVideo || isLink || isInstagram; // 제목 수정 가능한 항목
+        const isInstagram = d.type === 'instagram'; // 인스타그램 게시물 (Embed Code)
+        const isInstagramLink = d.type === 'instagram_link'; // 인스타그램 Raw Link (신규)
+        const isEditable = isVideo || isLink || isInstagram || isInstagramLink; // 제목 수정 가능한 항목
         const imageUrl = d.url;
         const pageUrl = d.pageUrl; // 일반 URL, 동영상 URL 또는 인스타그램 게시물 URL
         const sourceDomain = d.sourceDomain || 'Unknown Source';
@@ -671,6 +692,24 @@
                     <div class="absolute top-0 left-0 right-0 p-2 bg-black bg-opacity-70 text-white text-sm font-bold z-10">${displayTitle}</div>
                 </div>
              `;
+
+        } else if (isInstagramLink) {
+             // 인스타그램 Raw Link 북마크 (미리보기 시도)
+             const displayTitle = d.title || 'Instagram Link (미리보기 시도)';
+             const displayUrl = pageUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+            
+             // d.url에 저장된 Instagram URL을 이미지 src로 시도합니다.
+             // onerror 속성을 사용하여 미리보기 실패 시 대체 카드를 렌더링합니다.
+             iconHtml = `
+                 <div class="w-full h-full relative">
+                    <img src="${d.url}" alt="인스타그램 이미지 미리보기" 
+                         loading="lazy" decoding="async" class="img-fit-cover"
+                         onerror="this.parentNode.innerHTML='<div class=\\'instagram-link-fallback\\'><svg xmlns=\\'http://www.w3.org/2000/svg\\' class=\\'h-10 w-10 text-white mb-2\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' d=\\'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-12 12V4a2 2 0 012-2h4a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2z\\'/></svg><span class=\\'title\\'>${displayTitle}</span><span class=\\'subtitle\\'>미리보기 불가 (원본 페이지 이동)</span></div>'"/>
+                    
+                    <div class="absolute top-0 left-0 right-0 p-2 bg-black bg-opacity-70 text-white text-sm font-bold z-10">${displayTitle}</div>
+                 </div>
+             `;
+             urlToOpen = pageUrl;
 
         } else if (isVideo && !thumbnail) {
             // **수정된 부분: 썸네일 없는 비디오를 위한 새로운 제목 오버레이 스타일 적용**
@@ -728,7 +767,7 @@
             // 삭제나 편집 버튼을 누른 경우는 무시
             if (e.target.closest('button[data-action]')) return; 
 
-            if (isVideo || isLink || isInstagram) {
+            if (isVideo || isLink || isInstagram || isInstagramLink) {
                 // 인스타그램의 경우 URLToOpen을 사용 (퍼가기 코드에서 추출된 원본 URL)
                 window.open(urlToOpen, '_blank');
             } else {
@@ -807,6 +846,18 @@
         return /<blockquote class="instagram-media".*<\/blockquote>/.test(text);
     }
     
+    // **신규: 인스타그램 Raw Link 확인**
+    function isInstagramUrl(u) {
+        if (!u) return false;
+        try {
+            const urlObj = new URL(u);
+            return /instagram\.com/.test(urlObj.hostname) && /^\/p\//.test(urlObj.pathname);
+        } catch {
+            return false;
+        }
+    }
+
+
     // **신규: 도메인 추출 유틸리티**
     function extractDomain(url) {
         if (!url) return 'Unknown';
@@ -826,9 +877,10 @@
         if (!u) return false;
         try {
             const urlObj = new URL(u);
-            // http 또는 https 프로토콜을 사용하며, 이미지/비디오/인스타그램 URL이 아닌 경우
-            // **수정된 부분: URL에 . (점)이 포함되어야 유효한 도메인으로 간주합니다.**
-            return (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') && urlObj.hostname.includes('.') && !isImageUrl(u) && !isVideoUrl(u) && !/instagram\.com/.test(u);
+            // raw Instagram URL 제외
+            if (isInstagramUrl(u)) return false; 
+            
+            return (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') && urlObj.hostname.includes('.') && !isImageUrl(u) && !isVideoUrl(u);
         } catch {
             return false;
         }
@@ -868,6 +920,10 @@
           } else if(isVideoUrl(url)) {
               // 동영상 URL 북마크
               if(window.addVideoBookmark) { await window.addVideoBookmark(url); showFeedbackMessage('동영상 URL 북마크됨'); }
+              return;
+          } else if(isInstagramUrl(url)) {
+              // **신규: 인스타그램 Raw Link 북마크**
+              if(window.addInstagramLinkBookmark) { await window.addInstagramLinkBookmark(url); showFeedbackMessage('인스타그램 링크 북마크됨'); }
               return;
           } else if(isGenericUrl(url)) {
               // 일반 페이지 URL 북마크
@@ -910,7 +966,11 @@
                 if(window.addRemoteImage){ await window.addRemoteImage(t,t); showFeedbackMessage('클립보드 이미지 URL 북마크됨'); processed=true; return; } 
             } else if(isVideoUrl(t)){
                 if(window.addVideoBookmark) { await window.addVideoBookmark(t); showFeedbackMessage('클립보드 동영상 URL 북마크됨'); processed=true; return; }
+            } else if(isInstagramUrl(t)) {
+                // **신규: 인스타그램 Raw Link 북마크**
+                if(window.addInstagramLinkBookmark) { await window.addInstagramLinkBookmark(t); showFeedbackMessage('클립보드 인스타그램 링크 북마크됨'); processed=true; return; }
             } else if(isGenericUrl(t)) {
+                // 일반 페이지 URL 포함
                 if(window.addGenericBookmark) { await window.addGenericBookmark(t); showFeedbackMessage('클립보드 페이지 URL 북마크됨'); processed=true; return; }
             }
         }
@@ -941,7 +1001,11 @@
                 if(window.addRemoteImage){ await window.addRemoteImage(txt,txt); showFeedbackMessage('URL 북마크됨'); return; } 
              } else if(isVideoUrl(txt)){
                  if(window.addVideoBookmark) { await window.addVideoBookmark(txt); showFeedbackMessage('동영상 URL 북마크됨'); return; }
+             } else if(isInstagramUrl(txt)){
+                 // **신규: 인스타그램 Raw Link 북마크**
+                 if(window.addInstagramLinkBookmark) { await window.addInstagramLinkBookmark(txt); showFeedbackMessage('인스타그램 링크 북마크됨'); return; }
              } else if(isGenericUrl(txt)){
+                 // 일반 페이지 URL 포함
                  if(window.addGenericBookmark) { await window.addGenericBookmark(txt); showFeedbackMessage('페이지 URL 북마크됨'); return; }
              }
              foundText = txt;
@@ -959,7 +1023,11 @@
                 if(window.addRemoteImage){ await window.addRemoteImage(plain,plain); showFeedbackMessage('URL 북마크됨'); return; } 
              } else if(isVideoUrl(plain)){
                 if(window.addVideoBookmark) { await window.addVideoBookmark(plain); showFeedbackMessage('동영상 URL 북마크됨'); return; }
+             } else if(isInstagramUrl(plain)){
+                // **신규: 인스타그램 Raw Link 북마크**
+                 if(window.addInstagramLinkBookmark) { await window.addInstagramLinkBookmark(plain); showFeedbackMessage('인스타그램 링크 북마크됨'); return; }
              } else if(isGenericUrl(plain)){
+                // 일반 페이지 URL 포함
                 if(window.addGenericBookmark) { await window.addGenericBookmark(plain); showFeedbackMessage('페이지 URL 북마크됨'); return; }
              }
           }
@@ -1095,7 +1163,7 @@
       await addDoc(imagesCol,{ pageUrl: url, url: null, type:'link', title: null, sourceDomain: extractDomain(url), timestamp:new Date() }); 
     };
     
-    // 인스타그램 북마크 저장 (퍼가기 코드 저장, type: 'instagram')
+    // 인스타그램 퍼가기 북마크 저장 (type: 'instagram')
     window.addInstagramBookmark = async (embedCode)=>{
       if(!ensureLogin()) return;
       const { imagesCol } = await cloudRefs();
@@ -1109,6 +1177,15 @@
       
       await addDoc(imagesCol,{ pageUrl: pageUrl, embedCode: embedCode, url: null, type:'instagram', title: null, sourceDomain: extractDomain(pageUrl), timestamp:new Date() }); 
     };
+    
+    // **신규: 인스타그램 Raw Link 북마크 저장 (type: 'instagram_link')**
+    window.addInstagramLinkBookmark = async (url)=>{
+      if(!ensureLogin()) return;
+      const { imagesCol } = await cloudRefs();
+      // pageUrl 필드에 인스타그램 URL을 저장하고, url 필드에도 저장하여 미리보기 시도에 사용
+      await addDoc(imagesCol,{ pageUrl: url, url: url, type:'instagram_link', title: null, sourceDomain: extractDomain(url), timestamp:new Date() }); 
+    };
+
 
     // 이미지 URL만 저장 (type: 'remote')
     window.addRemoteImage = async (url, pageUrl)=>{
@@ -1168,7 +1245,7 @@
         
         if(!row) throw new Error('북마크 항목을 찾을 수 없습니다.');
         
-        if(row.type==='remote' || row.type === 'video' || row.type === 'link' || row.type === 'instagram'){
+        if(row.type==='remote' || row.type === 'video' || row.type === 'link' || row.type === 'instagram' || row.type === 'instagram_link'){
           // remote 이미지, 동영상, 일반 링크, 인스타그램 북마크는 Firestore 문서만 삭제
           await deleteDoc(doc(imagesCol,id));
           showFeedbackMessage('북마크가 삭제되었습니다.');
