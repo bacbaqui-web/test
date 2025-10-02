@@ -136,7 +136,7 @@
 
   <div id="bookmarks-section" class="section-card tab-content text-left">
     <section id="drag-area" class="drag-area rounded-lg p-6 flex items-center justify-center text-center text-[#999] font-medium cursor-pointer mt-6" title="클릭하면 클립보드에서 자동 붙여넣기 시도">
-      <div>이미지/동영상 URL은 붙여넣기 또는 드래그. 캡쳐/이미지는 붙여넣기(Ctrl/Cmd+V)를 사용하세요.</div>
+      <div>이미지/동영상/일반 페이지 URL은 붙여넣기 또는 드래그. 캡쳐/이미지는 붙여넣기(Ctrl/Cmd+V)를 사용하세요.</div>
     </section>
     <section id="image-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6"></section>
   </div>
@@ -193,7 +193,7 @@
     window.customTasks = window.customTasks || [];
     window.taskStatus = window.taskStatus || {};
     window.__notesTabs = window.__notesTabs || {};
-    window.imageBookmarks = window.imageBookmarks || []; // 북마크는 이미지와 동영상 모두 포함
+    window.imageBookmarks = window.imageBookmarks || []; // 북마크는 이미지와 동영상, 일반 링크 모두 포함
     window.currentTask = null;
     let currentDate = new Date();
     window.isAuthReady = false;
@@ -347,13 +347,25 @@
       imageGrid.innerHTML='';
       (window.imageBookmarks||[]).forEach(d=>{
         const isVideo = d.type === 'video';
+        const isLink = d.type === 'link'; // 일반 페이지 링크
         const imageUrl = d.url;
         const pageUrl = d.pageUrl;
         
         let thumbnail = isVideo ? getYoutubeThumbnail(pageUrl) : imageUrl;
         let iconHtml = '';
 
-        if (isVideo && !thumbnail) {
+        if (isLink) {
+            // 일반 페이지 링크 북마크
+            const displayUrl = pageUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+            iconHtml = `<div class="icon-overlay flex-col p-2">
+                            <!-- 링크 아이콘 -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.708l4-4a4 4 0 015.656 0l4 4a4 4 0 01-5.656 5.656l-1.102-1.101" />
+                            </svg>
+                            <!-- URL 텍스트 -->
+                            <span class="text-xs font-bold text-white text-center w-full whitespace-normal break-words px-1">${displayUrl}</span>
+                        </div>`;
+        } else if (isVideo && !thumbnail) {
             // 유튜브 외 다른 동영상이거나 썸네일 추출 실패 시
             iconHtml = `<div class="icon-overlay"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></div>
                         <div class="icon-text">${pageUrl.length > 30 ? pageUrl.substring(0, 27) + '...' : pageUrl}</div>`;
@@ -377,9 +389,9 @@
           </button>`;
         imageGrid.appendChild(card);
         
-        // 클릭 이벤트: 동영상은 원본 페이지, 이미지는 모달
+        // 클릭 이벤트: 동영상 및 일반 링크는 원본 페이지, 이미지는 모달
         card.addEventListener('click',()=>{
-            if (isVideo) {
+            if (isVideo || isLink) {
                 window.open(pageUrl, '_blank');
             } else {
                 openImageModal(imageUrl, pageUrl);
@@ -427,6 +439,18 @@
         // YouTube, Vimeo, 또는 일반적인 동영상 확장자 검사
         return /youtu\.be|youtube\.com|vimeo\.com|\.(mp4|webm|ogg|mov)(\?|$)/i.test(u);
     }
+    
+    // 새로운 유틸리티: 이미지/동영상 URL이 아닌 일반 URL인지 확인
+    function isGenericUrl(u) {
+        if (!u) return false;
+        try {
+            const urlObj = new URL(u);
+            // http 또는 https 프로토콜을 사용하며, 이미지/비디오 URL이 아닌 경우
+            return (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') && !isImageUrl(u) && !isVideoUrl(u);
+        } catch {
+            return false;
+        }
+    }
 
     // 드래그앤드롭 핸들러
     dragArea.addEventListener('dragover',(e)=>{ e.preventDefault(); dragArea.classList.add('active'); });
@@ -456,6 +480,10 @@
               // 동영상 URL 북마크
               if(window.addVideoBookmark) { await window.addVideoBookmark(url); showFeedbackMessage('동영상 URL 북마크됨'); }
               return;
+          } else if(isGenericUrl(url)) {
+              // 일반 페이지 URL 북마크
+              if(window.addGenericBookmark) { await window.addGenericBookmark(url); showFeedbackMessage('페이지 URL 북마크됨'); }
+              return;
           }
       }
 
@@ -463,7 +491,7 @@
       const files=[...(dt.files||[])].filter(f=>f.type.startsWith('image/'));
       if(files.length){ showAlert('파일 드롭은 업로드하지 않습니다. 캡쳐 이미지는 붙여넣기(Ctrl/Cmd+V)를 사용하세요.'); return; }
 
-      showAlert('유효한 이미지/동영상 URL을 찾지 못했습니다.');
+      showAlert('유효한 이미지/동영상/일반 페이지 URL을 찾지 못했습니다.');
     });
 
     // 클릭: 클립보드 접근 및 자동 붙여넣기 시도
@@ -491,6 +519,8 @@
                 if(window.addRemoteImage){ await window.addRemoteImage(t,t); showFeedbackMessage('클립보드 이미지 URL 북마크됨'); processed=true; return; } 
             } else if(isVideoUrl(t)){
                 if(window.addVideoBookmark) { await window.addVideoBookmark(t); showFeedbackMessage('클립보드 동영상 URL 북마크됨'); processed=true; return; }
+            } else if(isGenericUrl(t)) {
+                if(window.addGenericBookmark) { await window.addGenericBookmark(t); showFeedbackMessage('클립보드 페이지 URL 북마크됨'); processed=true; return; }
             }
         }
         
@@ -518,6 +548,8 @@
                 if(window.addRemoteImage){ await window.addRemoteImage(txt,txt); showFeedbackMessage('URL 북마크됨'); return; } 
              } else if(isVideoUrl(txt)){
                  if(window.addVideoBookmark) { await window.addVideoBookmark(txt); showFeedbackMessage('동영상 URL 북마크됨'); return; }
+             } else if(isGenericUrl(txt)){
+                 if(window.addGenericBookmark) { await window.addGenericBookmark(txt); showFeedbackMessage('페이지 URL 북마크됨'); return; }
              }
              foundText = txt;
           }
@@ -532,11 +564,13 @@
                 if(window.addRemoteImage){ await window.addRemoteImage(plain,plain); showFeedbackMessage('URL 북마크됨'); return; } 
              } else if(isVideoUrl(plain)){
                 if(window.addVideoBookmark) { await window.addVideoBookmark(plain); showFeedbackMessage('동영상 URL 북마크됨'); return; }
+             } else if(isGenericUrl(plain)){
+                if(window.addGenericBookmark) { await window.addGenericBookmark(plain); showFeedbackMessage('페이지 URL 북마크됨'); return; }
              }
           }
       }
       
-      showAlert('붙여넣기한 항목에 유효한 이미지나 동영상 URL이 없습니다.');
+      showAlert('붙여넣기한 항목에 유효한 이미지나 동영상 URL, 또는 일반 페이지 URL이 없습니다.');
     });
   </script>
 
@@ -585,7 +619,7 @@
       return {
         tasksCol: collection(db, `${userPath}/customTasks`),
         stateDoc: doc(db, `${userPath}/meta/appState`),
-        imagesCol: collection(db, `${userPath}/images`), // 이미지/동영상 북마크 통합 컬렉션
+        imagesCol: collection(db, `${userPath}/images`), // 이미지/동영상/링크 북마크 통합 컬렉션
       };
     };
 
@@ -644,6 +678,14 @@
       await addDoc(imagesCol,{ pageUrl: url, url: null, type:'video', timestamp:new Date() }); 
     };
     
+    // 일반 링크 북마크 저장 (URL만 저장, type: 'link')
+    window.addGenericBookmark = async (url)=>{
+      if(!ensureLogin()) return;
+      const { imagesCol } = await cloudRefs();
+      // pageUrl 필드에 일반 URL을 저장
+      await addDoc(imagesCol,{ pageUrl: url, url: null, type:'link', timestamp:new Date() }); 
+    };
+
     // 이미지 URL만 저장 (type: 'remote')
     window.addRemoteImage = async (url, pageUrl)=>{
       if(!ensureLogin()) return;
@@ -684,8 +726,8 @@
         
         if(!row) throw new Error('북마크 항목을 찾을 수 없습니다.');
         
-        if(row.type==='remote' || row.type === 'video'){
-          // remote 이미지 또는 동영상 북마크는 Firestore 문서만 삭제
+        if(row.type==='remote' || row.type === 'video' || row.type === 'link'){
+          // remote 이미지, 동영상 또는 일반 링크 북마크는 Firestore 문서만 삭제
           await deleteDoc(doc(imagesCol,id));
           showFeedbackMessage('북마크가 삭제되었습니다.');
           return;
@@ -723,7 +765,7 @@
       window.__unsubs.push(unsubState);
 
       const unsubImages = onSnapshot(imagesCol,(snap)=>{ 
-          // imageBookmarks에 이미지와 동영상 북마크 모두 포함
+          // imageBookmarks에 이미지/동영상/링크 북마크 모두 포함
           window.imageBookmarks=snap.docs.map(d=>({id:d.id,...d.data()})); 
           if(typeof renderImageBookmarks==='function') renderImageBookmarks(); 
       });
