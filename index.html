@@ -119,6 +119,13 @@
     
     /* 인스타그램 스타일 (이제 직접 임베드 코드를 사용하므로 이 스타일은 사용하지 않음) */
     .bookmark-card .instagram-overlay { display: none; } 
+    
+    /* 인스타그램 임베드 짤림 방지: 임베드 콘텐츠가 부모 카드 너비를 넘지 않도록 설정 */
+    .bookmark-card .content > div[style*="max-width:540px"] {
+        max-width: 100% !important; 
+        width: 100% !important;
+        box-sizing: border-box; /* 패딩/보더 포함 너비 계산 */
+    }
 
 
     @media (max-width:768px){
@@ -155,11 +162,14 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        cursor: pointer; /* 모달 내용을 클릭해서 닫기 위해 커서 추가 */
     }
     #modalImage {
         /* Fill the constrained container while maintaining aspect ratio */
-        width: 100%; /* Fill 100% of the constrained width */
-        height: 100%; /* Fill 100% of the constrained height */
+        width: auto; 
+        height: auto; 
+        max-width: 100%; /* 모달 콘텐츠 크기 내에서 최대화 */
+        max-height: 100%; /* 모달 콘텐츠 크기 내에서 최대화 */
         object-fit: contain; /* Crucial: Ensures the whole image is visible within 90vw/90vh without being cut off */
     }
     
@@ -451,7 +461,16 @@
       taskModal.addEventListener('click',(e)=>{ if(e.target===taskModal) closeModal(); });
 
       closeImageModalBtn.addEventListener('click', closeImageModal);
-      imageModal.addEventListener('click',(e)=>{ if(e.target===imageModal) closeImageModal(); });
+      // 이미지 모달 배경 클릭 시 닫기
+      imageModal.addEventListener('click',(e)=>{ if(e.target===imageModal) closeImageModal(); }); 
+      // 추가: 모달 내용 (이미지 포함) 클릭 시 닫기
+      document.querySelector('#imageModal .modal-content').addEventListener('click', (e) => {
+          // X 버튼, 원본 페이지 이동 버튼을 제외하고 닫기
+          if (!e.target.closest('#closeImageModalBtn') && !e.target.closest('#goToPageBtn')) {
+              closeImageModal();
+          }
+      });
+
 
       // URL 직접 입력 이벤트 리스너
       addUrlBtn.addEventListener('click', handleAddUrl);
