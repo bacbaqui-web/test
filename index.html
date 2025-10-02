@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>만화 일정 관리</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght400;700&display=swap" rel="stylesheet"/>
   <style>
     body{font-family:'Noto Sans KR',sans-serif;background:#000;color:#fff;display:flex;justify-content:flex-start;align-items:center;min-height:100vh;padding:16px;flex-direction:column;gap:0}
     .tab-content{display:none}.tab-content.active{display:flex;flex-direction:column;flex-grow:1}
@@ -34,11 +34,63 @@
     .modal-content{background:#1a1a1a;border-radius:12px;padding:24px;width:90%;max-width:500px;box-shadow:0 10px 30px rgba(0,0,0,.5);position:relative}
     .drag-area{border:2px dashed #4b4b4b;transition:all .3s ease;padding:24px}
     .drag-area.active{border-color:#6b6b6b;background-color:#2a2a2a}
+    
+    /* 북마크 Masonry 레이아웃 */
+    #image-grid {
+        column-count: 2; /* 기본 2열 */
+        column-gap: 1rem;
+        margin-top: 1.5rem; /* mt-6 */
+        display: block;
+    }
+    @media (min-width: 640px) { /* sm: 3열 */
+        #image-grid { column-count: 3; }
+    }
+    @media (min-width: 1024px) { /* lg: 4열 */
+        #image-grid { column-count: 4; }
+    }
+
     /* 북마크 카드 스타일 */
-    .bookmark-card{position:relative;transition:transform .2s ease-in-out; background: #333; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;}
+    .bookmark-card{
+        position: relative;
+        transition: transform .2s ease-in-out; 
+        background: #333; 
+        border-radius: 8px; 
+        overflow: hidden; 
+        margin-bottom: 1rem; /* 세로 간격 */
+        break-inside: avoid; /* 카드 분할 방지 */
+        width: 100%; /* Column 아이템으로 사용 */
+        display: block;
+    }
     .bookmark-card:hover{transform:translateY(-5px)}
-    .bookmark-card .content { height: 120px; position: relative; display: flex; justify-content: center; align-items: center; }
-    .bookmark-card img { width: 100%; height: 100%; object-fit: cover; }
+    
+    /* 콘텐츠 영역: 이미지/아이콘 높이에 따라 크기 결정 */
+    .bookmark-card .content {
+        display: block; 
+        width: 100%;
+        height: auto;
+        overflow: hidden;
+        background-color: #1a1a1a;
+        /* 링크나 동영상 썸네일이 없을 때 최소 높이 보장 */
+        min-height: 80px; 
+        position: relative; /* 오버레이를 위한 기준점 */
+    }
+    
+    .bookmark-card img {
+        position: static; 
+        width: 100%;
+        height: auto; /* 실제 비율 사용 */
+        display: block;
+        /* 기본: 이미지가 잘리지 않고 전체가 보이도록 contain 설정 */
+        object-fit: contain; 
+    }
+
+    .bookmark-card .img-fit-cover {
+        /* 비디오 썸네일용: 영역을 꽉 채우도록 cover 설정 */
+        object-fit: cover; 
+        height: 100%; /* content의 높이를 꽉 채우도록 설정 */
+    }
+    
+    /* 아이콘/텍스트 오버레이 */
     .bookmark-card .icon-overlay {
         position: absolute; top: 0; left: 0; right: 0; bottom: 0;
         background: rgba(0, 0, 0, 0.6);
@@ -138,7 +190,8 @@
     <section id="drag-area" class="drag-area rounded-lg p-6 flex items-center justify-center text-center text-[#999] font-medium cursor-pointer mt-6" title="클릭하면 클립보드에서 자동 붙여넣기 시도">
       <div>이미지/동영상/일반 페이지 URL은 붙여넣기 또는 드래그. 캡쳐/이미지는 붙여넣기(Ctrl/Cmd+V)를 사용하세요.</div>
     </section>
-    <section id="image-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6"></section>
+    <!-- Tailwind Grid 클래스 제거, CSS Masonry 스타일 적용됨 -->
+    <section id="image-grid"></section>
   </div>
 
   <div id="taskModal" class="modal">
@@ -371,10 +424,12 @@
                         <div class="icon-text">${pageUrl.length > 30 ? pageUrl.substring(0, 27) + '...' : pageUrl}</div>`;
         } else if (!isVideo) {
             // 이미지 북마크인 경우 (썸네일은 이미지 URL 자체)
+            // object-fit: contain (CSS 기본값) 적용
             iconHtml = `<img src="${imageUrl}" alt="북마크된 이미지" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://placehold.co/100x120/444/fff?text=이미지+오류'"/>`;
         } else {
             // 유튜브 동영상이고 썸네일이 있는 경우
-            iconHtml = `<img src="${thumbnail}" alt="동영상 썸네일" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://placehold.co/100x120/444/fff?text=동영상+썸네일'"/>
+            // object-fit: cover 적용
+            iconHtml = `<img src="${thumbnail}" alt="동영상 썸네일" loading="lazy" decoding="async" class="img-fit-cover" onerror="this.onerror=null;this.src='https://placehold.co/100x120/444/fff?text=동영상+썸네일'"/>
                         <div class="icon-overlay"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></div>`;
         }
 
