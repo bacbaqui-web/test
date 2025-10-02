@@ -1,1043 +1,750 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>사랑방 띵곡 플레이어</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>만화 일정 관리</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet"/>
   <style>
-    body { font-family: system-ui, -apple-apple-system, Segoe UI, Roboto, sans-serif; background: #111; color: #eee; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-    .wrap { max-width: 900px; margin: 24px auto; padding: 0 16px; width: 100%; }
-    .card { border: 1px solid #444; border-radius: 10px; padding: 16px; margin: 12px 0; background: #222; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .btn { background: #63b3ed; color: #fff; border: 0; border-radius: 999px; padding: .6rem 1rem; cursor: pointer; transition: background 0.2s; }
-    .btn:hover { background: #4299e1; }
-    .btn:disabled { background: #4a5568; cursor: not-allowed; }
-    .btn-toggle { background: #555; }
-    .btn-toggle.active { background: #fc8181; }
-    .btn-sort { background-color: #555; color: #fff; }
-    .btn-sort.most-liked { background-color: #f6ad55; }
-    .btn-sort.user-liked { background-color: #48bb78; }
+    body{font-family:'Noto Sans KR',sans-serif;background:#000;color:#fff;display:flex;justify-content:flex-start;align-items:center;min-height:100vh;padding:16px;flex-direction:column;gap:0}
+    .tab-content{display:none}.tab-content.active{display:flex;flex-direction:column;flex-grow:1}
+    .section-card{background:#2a2a2a;border-radius:12px;padding:20px;box-shadow:inset 0 0 10px rgba(0,0,0,.3);text-align:center;width:100%;max-width:800px}
+    .notepad-tabs{display:flex;justify-content:center;align-items:center;gap:1rem;width:100%;max-width:800px}
+    .notepad-tab{background:#1a1a1a;padding:8px 16px;border-radius:8px 8px 0 0;cursor:pointer;transition:.2s;font-weight:700;color:#737373;font-size:.85rem}
+    .notepad-tab.active,.notepad-tab:hover{background:#2a2a2a;color:#fff}
+    .notes-area{flex-grow:1;resize:vertical}
+    textarea#notesArea::-webkit-scrollbar{width:8px;background-color:#2a2a2a;border-radius:10px}
+    textarea#notesArea::-webkit-scrollbar-thumb{background-color:#555;border-radius:10px}
+    .calendar-header{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+    .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+    .day-label,.calendar-day{text-align:center;padding:8px 2px;border-radius:8px;background:#2a2a2a;position:relative;overflow:hidden;word-wrap:break-word}
+    .day-label{background:#444;font-weight:700;color:#fff;font-size:.8rem;padding:8px 0}
+    .calendar-day{min-height:160px;padding-top:16px;padding-left:2px;padding-right:2px;display:flex;flex-direction:column;gap:2px}
+    .calendar-day.today{border:2px solid #ccc}
+    .day-number{position:absolute;top:8px;left:8px;font-size:.85rem;font-weight:700;color:#aaa;z-index:10}
+    .task-item{font-size:.85rem;padding:5px 6px;border-radius:8px;margin-top:4px;word-wrap:break-word;cursor:pointer;text-align:left}
+    .task-item.custom-task{background:#4c78a8}
+    .task-item.episode-task{background:#444;color:#ddd}
+    .task-item.recurring-shorts{background:#7d4040}
+    .task-item.recurring-instatoon{background:#999966}
+    .task-item.complete{background:#888;text-decoration:line-through;color:#ccc}
+    .add-task-btn{background:#666;transition:.2s}.add-task-btn:hover{background:#777;transform:scale(1.02)}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;justify-content:center;align-items:center;z-index:1000}
+    .modal-content{background:#1a1a1a;border-radius:12px;padding:24px;width:90%;max-width:500px;box-shadow:0 10px 30px rgba(0,0,0,.5);position:relative}
+    .drag-area{border:2px dashed #4b4b4b;transition:all .3s ease;padding:24px}
+    .drag-area.active{border-color:#6b6b6b;background-color:#2a2a2a}
+    /* 북마크 카드 스타일 */
+    .bookmark-card{position:relative;transition:transform .2s ease-in-out; background: #333; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;}
+    .bookmark-card:hover{transform:translateY(-5px)}
+    .bookmark-card .content { height: 120px; position: relative; display: flex; justify-content: center; align-items: center; }
+    .bookmark-card img { width: 100%; height: 100%; object-fit: cover; }
+    .bookmark-card .icon-overlay {
+        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex; justify-content: center; align-items: center;
+        color: white; font-size: 3rem;
+    }
+    .bookmark-card .icon-text {
+        position: absolute; bottom: 0; left: 0; right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        color: white; padding: 4px; font-size: 0.75rem;
+        text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
 
-    .ok { color: #81e6d9; }
-    .fail { color: #fc8181; }
-    .muted { color: #a0aec0; }
-    input { background: #1f2937; color: #eee; border: 1px solid #374151; border-radius: 8px; padding: .55rem .7rem; flex: 1; min-width: 220px; outline: none; transition: border-color 0.2s; }
-    input:focus { border-color: #63b3ed; }
-    .item { display: flex; justify-content: space-between; align-items: center; padding: .5rem .6rem; border-bottom: 1px solid #2f3743; cursor: pointer; transition: background 0.2s; }
-    .item:hover { background: #2a3340; }
-    .item:last-child { border-bottom: none; }
-    .item .delete-btn { background: none; border: none; color: #fc8181; cursor: pointer; font-size: 1.2em; line-height: 1; margin-left: 10px; opacity: 0.7; transition: opacity 0.2s; }
-    .item .delete-btn:hover { opacity: 1; }
-    .item .info-icon { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 1.2em; margin-right: 5px; }
+    @media (max-width:768px){
+      body{padding:12px;gap:0}.section-card{padding:12px;border-radius:0}
+      .notepad-tabs{gap:.5rem}.notepad-tab{padding:6px 12px;font-size:.8rem}
+      .calendar-day{min-height:120px;padding:1.5rem .2rem .2rem;gap:1px}.day-number{font-size:.75rem;top:.5rem;left:.5rem}
+      .task-item{font-size:.85rem;padding:2px 4px;margin-top:2px}
+      .calendar-grid,.calendar-header{gap:0}.add-task-btn{width:100%;font-size:.9rem}
+      .modal-content{padding:16px;width:95%}
+    }
+    .calendar-grid{grid-gap:4px}
+    @media (max-width:768px){.calendar-grid{grid-gap:0}}
 
-    .item .like-btn, .current-like .like-btn { background: transparent; border: none; color: inherit; cursor: pointer; font-size: 1.2em; margin-right: 5px; transition: transform .05s ease; }
-    .item .like-btn:active, .current-like .like-btn:active { transform: scale(0.96); }
-    .like-count { font-size: 0.9em; color: #a0aec0; margin-left: -5px; margin-right: 5px;}
-
-    .uploader-btn { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 0.9em; padding: 0; }
-    .right-box { display: flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 180px; }
-
-    .video-player { aspect-ratio: 16 / 9; width: 100%; max-width: 800px; margin: 8px auto; border-radius: 8px; overflow: hidden; position: relative; }
-    .main-title { text-align: center; }
-    .sub-title { text-align: center; font-size: 0.9em; margin-top: -15px; color: #a0aec0; }
-    .message-box { display: none; background: #2d3748; color: #fff; padding: 12px; border-radius: 8px; text-align: center; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; }
-    #player { height: 100%; width: 100%; }
-    .player-controls { display: none; }
-    .modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); justify-content: center; align-items: center; }
-    .modal-content { background-color: #222; padding: 20px; border: 1px solid #444; width: 80%; max-width: 500px; border-radius: 10px; position: relative; }
-    .modal-content .modal-section { margin-bottom: 15px; }
-    .modal-content .modal-section label { display: block; margin-bottom: 5px; font-weight: bold; }
-    .modal-content input[type="text"], .modal-content textarea { width: 100%; box-sizing: border-box; background: #1f2937; color: #eee; border: 1px solid #374151; border-radius: 8px; padding: 10px; outline: none; }
-    .modal-content textarea { height: 100px; resize: vertical; }
-    .modal-content .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
-    .modal-content .close-btn:hover, .modal-content .close-btn:focus { color: #fff; text-decoration: none; cursor: pointer; }
-    .modal-content .save-btn { background: #38b2ac; color: #fff; border: 0; border-radius: 999px; padding: .6rem 1rem; margin-top: 10px; cursor: pointer; }
-    .confirm-modal { display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); justify-content: center; align-items: center; }
-    .confirm-modal-content { background-color: #222; padding: 20px; border: 1px solid #444; width: 80%; max-width: 350px; border-radius: 10px; text-align: center; }
-    .confirm-modal-buttons { display: flex; justify-content: space-around; }
-    .confirm-modal-buttons .btn { min-width: 100px; }
-    #currentSongNotes { border-top: 1px solid #444; margin-top: 10px; padding-top: 10px; }
-    #currentSongNotes p { margin: 0 0 10px 0; color: #ccc; }
-    .song-details { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: flex; align-items: center; }
-    .buster-call-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); z-index: 999; transition: opacity 0.5s ease-in-out; opacity: 0; pointer-events: none; }
-    .buster-call-overlay.show { opacity: 1; }
-    .buster-call-overlay h2 { font-size: 3em; margin: 0; animation: pulse 1s infinite; }
-    .buster-call-overlay p { font-size: 1.5em; margin: 0; }
-    @keyframes pulse { 0% { transform: scale(1);} 50% { transform: scale(1.05);} 100% { transform: scale(1);} }
-    .song-info-container { display: flex; align-items: center; justify-content: center; margin-top: 10px; gap: 10px; font-size: 1.2em; font-weight: bold; text-align: center; }
-    .song-info-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 220px); display: flex; align-items: center; justify-content: center; }
-    .current-info-btn { background: none; border: none; color: #63b3ed; cursor: pointer; font-size: 1.2em; margin-right: 5px; padding: 0; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; }
-    .current-like { display: flex; align-items: center; gap: 6px; }
-    .new-tag { background-color: #f6ad55; color: #fff; font-size: 0.7em; font-weight: bold; padding: 2px 6px; border-radius: 999px; margin-left: 8px; vertical-align: middle; text-transform: uppercase; }
+    /* 이미지 모달 스타일 */
+    #imageModal.modal {
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+    }
+    #imageModal .modal-content {
+        background-color: transparent;
+        padding: 0;
+        box-shadow: none;
+        width: 90%;
+        max-width: 1200px;
+        height: auto;
+        max-height: 90%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    #modalImage {
+        width: 100%;
+        height: auto;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
   </style>
-  <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.youtube.com/iframe_api"></script>
 </head>
-<body>
-<audio id="dingdong-sound" src="https://cdn.pixabay.com/audio/2021/08/04/audio_33e07f59d5.mp3" preload="auto" volume="0.3"></audio>
-<div id="message-box" class="message-box"></div>
-<div class="wrap">
-  <div class="main-title">
-    <h1>사랑방 띵곡 플레이어</h1>
-    <p class="sub-title">작가님들의 띵곡을 추천해주세요</p>
+<body class="text-white">
+  <div id="authBar" class="w-full max-w-2xl mx-auto flex items-center justify-end gap-2 mb-4">
+    <span id="userInfo" class="text-sm opacity-80"></span>
+    <button id="signInBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">Google 로그인</button>
+    <button id="signOutBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded hidden">로그아웃</button>
   </div>
 
-  <div class="card">
-    <div id="player-container" class="video-player">
-      <div id="player"></div>
-      <div id="buster-call-overlay" class="buster-call-overlay">
-        <h2>버스터콜!!!</h2>
-        <p>모두집중!!!</p>
-      </div>
-    </div>
+  <div id="main-tabs" class="notepad-tabs mx-auto">
+    <button class="notepad-tab active" data-tab="calendar">달력</button>
+    <button class="notepad-tab" data-tab="notes">메모</button>
+    <button class="notepad-tab" data-tab="bookmarks">북마크</button>
+  </div>
 
-    <div class="song-info-container">
-      <button id="prev-song-btn-inline" class="btn">&lt;</button>
-      <div id="currentSongInfo" class="song-info-text">
-        <span class="muted">현재 재생 중인 곡이 없습니다.</span>
-      </div>
-      <div class="current-like">
-        <button id="current-like-btn" class="like-btn" disabled>👍🏿</button>
-        <span id="current-like-count" class="like-count">0</span>
-      </div>
-      <button id="next-song-btn-inline" class="btn">&gt;</button>
+  <div id="calendar-section" class="section-card tab-content active">
+    <div class="flex justify-between items-center mb-4">
+      <button id="prevMonthBtn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">&lt; 이전 달</button>
+      <h2 id="currentMonthYear" class="text-lg font-bold"></h2>
+      <button id="nextMonthBtn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">다음 달 &gt;</button>
     </div>
-
-    <div id="currentSongNotes">
-      <span class="muted"></span>
+    <div class="calendar-header mb-2">
+      <div class="day-label">일</div><div class="day-label">월</div><div class="day-label">화</div>
+      <div class="day-label">수</div><div class="day-label">목</div><div class="day-label">금</div><div class="day-label">토</div>
     </div>
-
-    <div class="row" style="margin-top:10px">
-      <input id="url" placeholder="유튜브 링크 또는 노래 제목을 입력"/>
-      <button id="add" class="btn">추가</button>
-      <button id="shuffleBtn" class="btn btn-toggle">셔플</button>
-      <button id="likeSortBtn" class="btn btn-sort">따봉 정렬</button>
-      <button id="togglePlayerBtn" class="btn btn-toggle">화면 숨기기</button>
-      <button id="busterCallToggle" class="btn btn-toggle">버스터콜</button>
-    </div>
-
-    <div id="manual-input" style="display:none; margin-top: 10px;">
-      <div class="row">
-        <input id="manualTitle" placeholder="제목을 수동으로 입력해주세요"/>
-      </div>
-      <div class="row" style="margin-top: 10px;">
-        <input id="manualArtist" placeholder="아티스트를 수동으로 입력해주세요"/>
-      </div>
-    </div>
-
-    <div id="playlist" class="card" style="margin:10px 0 0 0">
-      <div class="muted">재생목록이 비어있습니다.</div>
+    <div id="calendarGrid" class="calendar-grid"></div>
+    <div class="mt-8 text-center">
+      <button id="addTaskBtn" class="add-task-btn px-6 py-3 rounded-full font-bold text-white shadow-md">+ 개인 작업 추가</button>
     </div>
   </div>
-</div>
 
-<div id="infoModal" class="modal">
-  <div class="modal-content">
-    <span class="close-btn">&times;</span>
-    <h3>노래 정보</h3>
-    <div class="modal-section">
-      <label for="songTitleInput">노래 제목</label>
-      <input type="text" id="songTitleInput" placeholder="노래 제목을 입력하세요..."/>
+  <div id="notes-section" class="section-card tab-content">
+    <div class="notepad-tabs">
+      <button class="notepad-tab active" data-tab="바퀴멘터리">바퀴멘터리</button>
+      <button class="notepad-tab" data-tab="짐승육아">짐승육아</button>
+      <button class="notepad-tab" data-tab="그거아세요">그거아세요</button>
+      <button class="notepad-tab" data-tab="메모">메모</button>
     </div>
-    <div class="modal-section">
-      <label for="artistInput">아티스트</label>
-      <input type="text" id="artistInput" placeholder="아티스트 이름을 입력하세요..."/>
-    </div>
-    <div class="modal-section">
-      <label for="uploaderInput">올린 사람</label>
-      <input type="text" id="uploaderInput" placeholder="이름을 입력하세요..."/>
-    </div>
-    <div class="modal-section">
-      <label for="infoTextarea">노래에 대한 정보</label>
-      <textarea id="infoTextarea" placeholder="노트에 메모를 입력하세요..."></textarea>
-    </div>
-    <div class="modal-section">
-      <label for="commentTextarea">댓글</label>
-      <textarea id="commentTextarea" placeholder="댓글을 입력하세요..."></textarea>
-    </div>
-    <button id="saveInfoBtn" class="save-btn">저장</button>
+    <textarea id="notesArea" class="w-full notes-area p-4 bg-black text-white border border-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500 rounded-lg"></textarea>
   </div>
-</div>
 
-<div id="confirmModal" class="confirm-modal">
-  <div class="confirm-modal-content">
-    <p>정말로 삭제하시겠습니까?</p>
-    <div class="confirm-modal-buttons">
-      <button id="confirmYes" class="btn">예</button>
-      <button id="confirmNo" class="btn btn-toggle">아니오</button>
+  <div id="bookmarks-section" class="section-card tab-content text-left">
+    <section id="drag-area" class="drag-area rounded-lg p-6 flex items-center justify-center text-center text-[#999] font-medium cursor-pointer mt-6" title="클릭하면 클립보드에서 자동 붙여넣기 시도">
+      <div>이미지/동영상 URL은 붙여넣기 또는 드래그. 캡쳐/이미지는 붙여넣기(Ctrl/Cmd+V)를 사용하세요.</div>
+    </section>
+    <section id="image-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6"></section>
+  </div>
+
+  <div id="taskModal" class="modal">
+    <div class="modal-content">
+      <h2 id="modalTitle" class="text-2xl font-bold mb-4">새 작업</h2>
+      <label class="block mb-2">제목:</label>
+      <input type="text" id="taskTitle" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 mb-4">
+      <label class="block mb-2">설명:</label>
+      <textarea id="taskDescription" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 mb-4 h-24"></textarea>
+      <label class="block mb-2">날짜:</label>
+      <input type="date" id="taskDate" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 mb-4">
+      <div class="flex justify-end gap-2">
+        <button id="saveTaskBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">저장</button>
+        <button id="cancelBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">취소</button>
+        <button id="deleteTaskBtn" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg hidden">삭제</button>
+      </div>
     </div>
   </div>
-</div>
 
-<script>
-  // ===== 환경 =====
-  const __firebase_config = '{"apiKey":"AIzaSyDz6xGJNKXinG5rREjdrPz7toIYGZXzilU","authDomain":"sarangbangmusicplaylist.firebaseapp.com","projectId":"sarangbangmusicplaylist","storageBucket":"sarangbangmusicplaylist.appspot.com","messagingSenderId":"193412502606","appId":"1:193412502606:web:0f7f9ddbef1ee6711d1ff","measurementId":"G-L14GH3BHYD"}';
-  const __app_id = "default-app-id";
-  const __initial_auth_token = "";
-  const firebaseConfig = JSON.parse(__firebase_config);
-  const YOUTUBE_API_KEY = "AIzaSyB2GymrywkBYx4Mbt_xHNiYEV44MbfKY2w";
+  <div id="imageModal" class="modal">
+    <div class="modal-content relative">
+      <button id="closeImageModalBtn" class="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full p-1 z-50">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      <img id="modalImage" src="" alt="확대 이미지" />
+      <button id="goToPageBtn" class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg z-50">원본 페이지로 이동</button>
+    </div>
+  </div>
 
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-  let userId = null;
-  let authed = false;
-  let db;
-  let player;
-  let isYoutubeApiReady = false;
+  <div id="alert-modal" class="fixed inset-0 bg-[#1a1a1a] bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-[#242424] rounded-lg p-6 shadow-xl max-w-sm mx-auto">
+      <p id="modal-message" class="text-white text-lg text-center font-medium"></p>
+      <div class="mt-4 flex justify-center">
+        <button id="modal-close-btn" class="px-4 py-2 bg-[#424242] text-white rounded-md hover:bg-[#525252]">확인</button>
+      </div>
+    </div>
+  </div>
 
-  // ===== DOM =====
-  const urlInput = document.getElementById('url');
-  const addBtn = document.getElementById('add');
-  const shuffleBtn = document.getElementById('shuffleBtn');
-  const likeSortBtn = document.getElementById('likeSortBtn');
-  const listEl = document.getElementById('playlist');
-  const messageBox = document.getElementById('message-box');
-  const manualInputDiv = document.getElementById('manual-input');
-  const manualTitleInput = document.getElementById('manualTitle');
-  const manualArtistInput = document.getElementById('manualArtist');
-  const busterCallToggleBtn = document.getElementById('busterCallToggle');
-  const prevSongBtn = document.getElementById('prev-song-btn-inline');
-  const nextSongBtn = document.getElementById('next-song-btn-inline');
-  const currentSongInfoEl = document.getElementById('currentSongInfo');
-  const currentSongNotesEl = document.getElementById('currentSongNotes');
-  const busterCallOverlay = document.getElementById('buster-call-overlay');
-  const togglePlayerBtn = document.getElementById('togglePlayerBtn');
-  const playerContainer = document.getElementById('player-container');
-  const currentLikeBtn = document.getElementById('current-like-btn');
-  const currentLikeCountEl = document.getElementById('current-like-count');
-  const dingdongSound = document.getElementById('dingdong-sound');
+  <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-70 z-[1001] flex items-center justify-center hidden">
+    <div class="flex flex-col items-center">
+      <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-white"></div>
+      <p class="text-white mt-4 text-lg">데이터를 불러오는 중...</p>
+    </div>
+  </div>
 
-  const infoModal = document.getElementById('infoModal');
-  const songTitleInput = document.getElementById('songTitleInput');
-  const artistInput = document.getElementById('artistInput');
-  const uploaderInput = document.getElementById('uploaderInput');
-  const infoTextarea = document.getElementById('infoTextarea');
-  const commentTextarea = document.getElementById('commentTextarea');
-  const saveInfoBtn = document.getElementById('saveInfoBtn');
-  const modalCloseBtn = document.querySelector('.modal .close-btn');
-  const confirmModal = document.getElementById('confirmModal');
-  const confirmYesBtn = document.getElementById('confirmYes');
-  const confirmNoBtn = document.getElementById('confirmNo');
+  <!-- ===== UI 스크립트 ===== -->
+  <script>
+    // ImgBB API Key (이미지 업로드용)
+    const IMGBB_API_KEY = "f64175972f4e4178332db9ae8559969b";
 
-  // ===== 전역 상태 =====
-  const globalState = {
-    playlist: [],
-    shuffleDeck: [],
-    notes: {},
-    songLikes: {},
-    myLikedSet: new Set(),
-    likeSortMode: 0,
-    isShuffleMode: false,
-    filterUploader: null,
-    videoId: '',
-    currentPlayingIndex: -1,
-    isBusterCallMode: false,
-    lastBusterCallTimestamp: 0,
-    busterCallCoolDown: 30 * 1000,
-    isPlayerVisible: true,
-    playbackTitle: null,
-    playbackArtist: null,
-  };
+    // 전역 상태
+    window.customTasks = window.customTasks || [];
+    window.taskStatus = window.taskStatus || {};
+    window.__notesTabs = window.__notesTabs || {};
+    window.imageBookmarks = window.imageBookmarks || []; // 북마크는 이미지와 동영상 모두 포함
+    window.currentTask = null;
+    let currentDate = new Date();
+    window.isAuthReady = false;
 
-  const pendingLike = new Set();
-  let likesLoaded = false;
-  let myLikesLoaded = false;
+    // DOM 요소
+    const tabButtons = document.querySelectorAll('#main-tabs .notepad-tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const mainNotepadTabs = document.querySelectorAll('#notes-section .notepad-tabs .notepad-tab');
+    const notesArea = document.getElementById('notesArea');
+    const dragArea = document.getElementById('drag-area');
+    const imageGrid = document.getElementById('image-grid');
+    const imageModal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const closeImageModalBtn = document.getElementById('closeImageModalBtn');
+    const goToPageBtn = document.getElementById('goToPageBtn');
 
-  // ===== YouTube API =====
-  window.onYouTubeIframeAPIReady = function() {
-    isYoutubeApiReady = true;
-    player = new YT.Player('player', {
-      height: '100%',
-      width: '100%',
-      videoId: '',
-      playerVars: { 'autoplay': 1, 'controls': 1 },
-      events: { 'onStateChange': onPlayerStateChange }
-    });
-  };
-  function onPlayerStateChange(event) {
-    if (event.data === YT.PlayerState.ENDED) playNext();
-  }
+    // 유틸리티 함수
+    const showFeedbackMessage = (message) => {
+      const el = document.createElement('div');
+      el.textContent = message;
+      el.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.8);color:#fff;padding:16px 20px;border-radius:10px;z-index:2000;max-width:90%";
+      document.body.appendChild(el); setTimeout(()=>el.remove(),2000);
+    };
+    const showAlert = (msg) => { document.getElementById('modal-message').textContent = msg; document.getElementById('alert-modal').classList.remove('hidden'); };
+    const hideAlert = () => { document.getElementById('alert-modal').classList.add('hidden'); };
+    document.getElementById('modal-close-btn').addEventListener('click', hideAlert);
 
-  // ===== UI 헬퍼 =====
-  function showMessage(message, type = 'info') {
-    messageBox.textContent = message;
-    messageBox.style.background = (type === 'error') ? '#fc8181' : '#2d3748';
-    messageBox.style.display = 'block';
-    setTimeout(() => { messageBox.style.display = 'none'; }, 1500);
-  }
-  function showConfirm(message) {
-    document.querySelector('#confirmModal p').textContent = message;
-    confirmModal.style.display = 'flex';
-    return new Promise((resolve) => {
-      confirmYesBtn.onclick = () => { confirmModal.style.display = 'none'; resolve(true); };
-      confirmNoBtn.onclick = () => { confirmModal.style.display = 'none'; resolve(false); };
-    });
-  }
+    const openImageModal = (imageUrl, pageUrl) => {
+      modalImage.src = imageUrl;
+      if (pageUrl){ goToPageBtn.style.display='block'; goToPageBtn.onclick=()=>window.open(pageUrl,'_blank'); }
+      else goToPageBtn.style.display='none';
+      imageModal.style.display='flex';
+    };
+    const closeImageModal = () => { imageModal.style.display = 'none'; };
 
-  // ===== 부팅 =====
-  async function boot() {
-    try { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); }
-    catch(e) { console.error(e); return; }
-    try {
-      const auth = firebase.auth();
-      const cred = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token)
-        ? await auth.signInWithCustomToken(__initial_auth_token)
-        : await auth.signInAnonymously();
-      userId = cred.user.uid; authed = true;
-    } catch(e){ console.error(e); return; }
-
-    startRealtime();
-    wireUI();
-  }
-
-  // ===== 실시간 리스너 =====
-  function startRealtime() {
-    // 버스터콜 상태
-    const busterCallRef = db.collection('artifacts').doc(appId).collection('public')
-      .doc('data').collection('buster_call_state').doc('main_state');
-    busterCallRef.onSnapshot(snap => {
-      if (!snap.exists) return;
-      const state = snap.data();
-      if (state?.lastBusterCallTimestamp) {
-        globalState.lastBusterCallTimestamp = state.lastBusterCallTimestamp.toMillis();
-        checkBusterCallCooldown();
-      }
-      if (state?.showBusterCall) {
-        busterCallOverlay.classList.add('show');
-        const endMillis = state.endTimestamp.toMillis();
-        const remainingTime = endMillis - Date.now();
-        dingdongSound.play().catch(()=>{});
-        const hide = () => {
-          busterCallOverlay.classList.remove('show');
-          busterCallRef.set({ showBusterCall: false }, { merge: true });
-        };
-        if (remainingTime > 0) setTimeout(hide, remainingTime); else hide();
-      } else {
-        busterCallOverlay.classList.remove('show');
-      }
-    });
-
-    // ★ 추가: 재생 상태 리스너
-    const playbackRef = db.collection('artifacts').doc(appId).collection('public')
-      .doc('data').collection('playback_state').doc('main_state');
-    playbackRef.onSnapshot((snap) => {
-      if (!snap.exists) return;
-      const s = snap.data() || {};
-      if (s.lastUpdatedBy === userId) return;
-      try {
-        if (isYoutubeApiReady && s.videoId) {
-          player.loadVideoById(s.videoId);
-          player.seekTo(s.timestamp || 0, true);
-          updatePlayingSong(s.videoId);
-        }
-      } catch(e) { console.error(e); }
-    });
-
-    // 재생목록
-    const playlistRef = db.collection('artifacts').doc(appId).collection('public')
-      .doc('data').collection('playlist_state').doc('main_playlist');
-    playlistRef.onSnapshot((snap) => {
-      if (!snap.exists) return;
-      const playlistData = snap.data() || {};
-      globalState.playlist = Array.isArray(playlistData.playlist) ? playlistData.playlist : [];
-      if (globalState.isShuffleMode) syncDeckWithVisible();
-      renderList();
-    });
-
-    // 노트
-    const notesRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes');
-    notesRef.onSnapshot(snapshot => {
-      const newNotes = {};
-      snapshot.docs.forEach(doc => { newNotes[doc.id] = doc.data(); });
-      globalState.notes = newNotes;
-      renderList();
-      renderCurrentSongNotes();
-    });
-
-    // 따봉 집계
-    const likesRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('song_likes');
-    likesRef.onSnapshot(snapshot => {
-      const newLikes = {};
-      snapshot.docs.forEach(doc => { newLikes[doc.id] = doc.data(); });
-      globalState.songLikes = newLikes;
-      likesLoaded = true;
-      renderList();
-      renderCurrentLikeUI();
-      if (globalState.isShuffleMode) rebuildShuffleDeck();
-    });
-
-    // 내 따봉
-    const myLikesRef = db.collection('users').doc(userId).collection('my_likes');
-    myLikesRef.onSnapshot(snapshot => {
-      const s = new Set();
-      snapshot.docs.forEach(doc => s.add(doc.id));
-      globalState.myLikedSet = s;
-      myLikesLoaded = true;
-      renderList();
-      renderCurrentLikeUI();
-      if (globalState.isShuffleMode) rebuildShuffleDeck();
-    });
-  }
-
-  // ===== 상태 유틸 =====
-  function isNew(item) {
-    const t = item?.createdAt?.toDate ? item.createdAt.toDate().getTime() : item?.createdAt?.getTime?.();
-    if (!t) return false;
-    return (Date.now() - t) < 12 * 60 * 60 * 1000;
-  }
-  function isLiked(videoId){ return globalState.myLikedSet.has(videoId); }
-  function likeCount(videoId){ return globalState.songLikes[videoId]?.likeCount || 0; }
-  function readyLikes(){ return likesLoaded && myLikesLoaded; }
-
-  // ===== 정렬 가시 목록 =====
-  function getVisibleList() {
-    let list = [...globalState.playlist];
-
-    list.sort((a,b) => {
-      const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : a.createdAt?.getTime();
-      const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : b.createdAt?.getTime();
-      return (timeB || 0) - (timeA || 0);
-    });
-
-    if (globalState.filterUploader) {
-      const filtered = list.filter(item => (globalState.notes[item.videoId]?.uploader || '익명') === globalState.filterUploader);
-      const others = list.filter(item => (globalState.notes[item.videoId]?.uploader || '익명') !== globalState.filterUploader);
-      list = [...filtered, ...others];
+    function showTab(tabId){
+      tabContents.forEach(c=>c.classList.remove('active'));
+      tabButtons.forEach(b=>b.classList.remove('active'));
+      document.getElementById(`${tabId}-section`).classList.add('active');
+      const btn=document.querySelector(`#main-tabs .notepad-tab[data-tab="${tabId}"]`); if(btn) btn.classList.add('active');
     }
-
-    if (globalState.likeSortMode === 1) {
-      list.sort((a, b) => likeCount(b.videoId) - likeCount(a.videoId));
-    } else if (globalState.likeSortMode === 2) {
-      const liked = [], others = [];
-      list.forEach(item => (isLiked(item.videoId) ? liked : others).push(item));
-      list = [...liked, ...others];
-    }
-    return list;
-  }
-
-  // ===== 셔플 덱 =====
-  function fyShuffle(arr){
-    const a=[...arr];
-    for(let i=a.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1));
-      [a[i],a[j]]=[a[j],a[i]];
-    }
-    return a;
-  }
-  function rebuildShuffleDeck(){
-    const visibleIds=getVisibleList().map(s=>s.videoId);
-    const base=visibleIds.filter(id=>id!==globalState.videoId);
-    if(globalState.likeSortMode===2){
-      const a=base.filter(id=>isLiked(id));
-      const b=base.filter(id=>!isLiked(id));
-      globalState.shuffleDeck=[...fyShuffle(a), ...fyShuffle(b)];
-    }else{
-      globalState.shuffleDeck=fyShuffle(base);
-    }
-  }
-  function syncDeckWithVisible(){
-    const visibleIds=new Set(getVisibleList().map(s=>s.videoId));
-    globalState.shuffleDeck=globalState.shuffleDeck.filter(id=>visibleIds.has(id)&&id!==globalState.videoId);
-    const toAdd=[...visibleIds].filter(id=>id!==globalState.videoId && !globalState.shuffleDeck.includes(id));
-    if(toAdd.length) globalState.shuffleDeck.push(...fyShuffle(toAdd));
-  }
-
-  // ===== 업로더 클릭: 정렬 + 초기화 =====
-  function filterByUploader(uploaderName, opts={resetSort:false, resetShuffle:false}) {
-    if (globalState.filterUploader === uploaderName) {
-      globalState.filterUploader = null;
-      showMessage("업로더 정렬 해제");
-    } else {
-      globalState.filterUploader = uploaderName;
-      showMessage(`${uploaderName}님 곡 상단 정렬`);
-    }
-
-    if (opts.resetSort) {
-      globalState.likeSortMode = 0;
-      likeSortBtn.classList.remove('most-liked','user-liked');
-    }
-    if (opts.resetShuffle) {
-      globalState.isShuffleMode = false;
-      shuffleBtn.classList.remove('active');
-      globalState.shuffleDeck = [];
-    }
-
-    renderList();
-  }
-
-  // ===== 리스트 렌더 =====
-  function renderList() {
-    listEl.innerHTML = '';
-    const playlistToRender = getVisibleList();
-    if (!playlistToRender.length) {
-      listEl.innerHTML = '<div class="muted">재생목록이 비어있습니다.</div>';
-      renderCurrentSongInfo();
-      return;
-    }
-
-    playlistToRender.forEach((item, index) => {
-      const div = document.createElement('div');
-      div.className = 'item';
-      div.dataset.videoId = item.videoId;
-      div.dataset.index = index;
-
-      const songDetails = document.createElement('div');
-      songDetails.className = 'song-details';
-
-      const infoIcon = document.createElement('button');
-      infoIcon.className = 'info-icon';
-      infoIcon.innerHTML = '&#x24D8;';
-      infoIcon.addEventListener('click', (e) => { e.stopPropagation(); openInfoModal(item.videoId); });
-      songDetails.appendChild(infoIcon);
-
-      const titleSpan = document.createElement('span');
-      titleSpan.textContent = `${item.artist} - ${item.title}`;
-      songDetails.appendChild(titleSpan);
-
-      if (isNew(item)) {
-        const newTag = document.createElement('span');
-        newTag.className = 'new-tag';
-        newTag.textContent = 'new';
-        titleSpan.prepend(newTag, ' ');
-      }
-
-      const rightBox = document.createElement('div');
-      rightBox.className = 'right-box';
-
-      const uploader = globalState.notes[item.videoId]?.uploader || '익명';
-      const uploaderBtn = document.createElement('button');
-      uploaderBtn.className = 'uploader-btn';
-      uploaderBtn.textContent = uploader;
-      uploaderBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        filterByUploader(uploader, { resetSort: true, resetShuffle: true });
+    showTab('calendar');
+    tabButtons.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+    mainNotepadTabs.forEach(tab=>{
+      tab.addEventListener('click',()=>{
+        mainNotepadTabs.forEach(t=>t.classList.remove('active')); tab.classList.add('active');
+        window.activeTab = tab.dataset.tab;
+        notesArea.value = (window.__notesTabs||{})[window.activeTab] || '';
       });
+    });
 
-      const likeBtn = document.createElement('button');
-      likeBtn.className = 'like-btn';
-      likeBtn.disabled = !readyLikes();
-      likeBtn.textContent = isLiked(item.videoId) ? '👍' : '👍🏿';
-      likeBtn.addEventListener('click', async (e) => { e.stopPropagation(); await handleLike(item.videoId, likeBtn); });
+    // 시간/날짜 관련 유틸리티
+    const TZ='Asia/Seoul';
+    function ymdKST(date){ return new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(date); }
+    function toKST(date){ return new Date(date.toLocaleString('en-US',{timeZone:TZ})); }
+    function countWeekdaysBetweenKST(a,b){ let c=0,start=toKST(new Date(Math.min(a,b))),end=toKST(new Date(Math.max(a,b))),cur=new Date(start); while(cur<=end){ const d=cur.getDay(); if(d>=0&&d<=4)c++; cur.setDate(cur.getDate()+1);} return c;}
 
-      const countSpan = document.createElement('span');
-      countSpan.className = 'like-count';
-      countSpan.textContent = likeCount(item.videoId);
+    const fixedSchedules=[{title:'쇼츠',daysOfWeek:[1,3,5],colorClass:'recurring-shorts'},{title:'웹툰',daysOfWeek:[2,4,6],colorClass:'recurring-instatoon'}];
 
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'delete-btn';
-      deleteBtn.innerHTML = '&#x2715;';
-      deleteBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const shouldDelete = await showConfirm("정말로 삭제하시겠습니까?");
-        if (shouldDelete) {
-          const newPlaylist = [...globalState.playlist].filter(s => s.videoId !== item.videoId);
-          updatePlaylist(newPlaylist);
+    // 모달 관련 DOM
+    const taskModal=document.getElementById('taskModal');
+    const cancelBtn=document.getElementById('cancelBtn');
+    const saveTaskBtn=document.getElementById('saveTaskBtn');
+    const deleteTaskBtn=document.getElementById('deleteTaskBtn');
+    const taskTitleInput=document.getElementById('taskTitle');
+    const taskDescriptionInput=document.getElementById('taskDescription');
+    const taskDateInput=document.getElementById('taskDate');
+
+    // 이벤트 리스너 부착
+    const attachEventListeners=()=>{
+      const prevMonthBtn=document.getElementById('prevMonthBtn');
+      const nextMonthBtn=document.getElementById('nextMonthBtn');
+      const addTaskBtn=document.getElementById('addTaskBtn');
+      prevMonthBtn?.addEventListener('click',()=>{ currentDate.setMonth(currentDate.getMonth()-1); renderCalendar(); });
+      nextMonthBtn?.addEventListener('click',()=>{ currentDate.setMonth(currentDate.getMonth()+1); renderCalendar(); });
+      addTaskBtn?.addEventListener('click',()=>openModal());
+      if(notesArea){
+        notesArea.addEventListener('input',()=>window.cloudSaveNotesDebounced&&window.cloudSaveNotesDebounced());
+        notesArea.addEventListener('blur',()=>window.cloudSaveNotes&&window.cloudSaveNotes());
+      }
+      cancelBtn.addEventListener('click',closeModal);
+      saveTaskBtn.addEventListener('click',saveTask);
+      // window.deleteTask는 Firebase 스크립트에서 정의됨
+      deleteTaskBtn.addEventListener('click',()=>window.deleteTask&&window.deleteTask());
+      taskModal.addEventListener('click',(e)=>{ if(e.target===taskModal) closeModal(); });
+
+      closeImageModalBtn.addEventListener('click', closeImageModal);
+      imageModal.addEventListener('click',(e)=>{ if(e.target===imageModal) closeImageModal(); });
+    };
+
+    // 달력 렌더링
+    const renderCalendar=()=>{
+      const year=currentDate.getFullYear(), month=currentDate.getMonth();
+      const currentMonthYear=document.getElementById('currentMonthYear');
+      const calendarGrid=document.getElementById('calendarGrid'); if(!currentMonthYear||!calendarGrid) return;
+      currentMonthYear.textContent=`${year}년 ${month+1}월`; calendarGrid.innerHTML='';
+      const firstDay=toKST(new Date(year,month,1)).getDay(); const daysInMonth=new Date(year,month+1,0).getDate();
+      for(let i=0;i<firstDay;i++){ const empty=document.createElement('div'); empty.className='calendar-day'; calendarGrid.appendChild(empty); }
+      for(let day=1;day<=daysInMonth;day++){
+        const dayDiv=document.createElement('div'); dayDiv.classList.add('calendar-day','relative');
+        const thisDate=new Date(year,month,day); const fullDate=ymdKST(thisDate); const dayOfWeek=toKST(thisDate).getDay();
+        const today=toKST(new Date()); if(ymdKST(thisDate)===ymdKST(today)) dayDiv.classList.add('today');
+        const dayNumberSpan=document.createElement('span'); dayNumberSpan.classList.add('day-number'); dayNumberSpan.textContent=day; dayDiv.appendChild(dayNumberSpan);
+
+        if(dayOfWeek>=0&&dayOfWeek<=4){
+          const milestoneDate=new Date('2025-09-01'); const weekdaysBetween=countWeekdaysBetweenKST(milestoneDate.getTime(), thisDate.getTime());
+          const milestoneEpisode=2014; const episodeNumber=(toKST(thisDate)>=toKST(milestoneDate))? milestoneEpisode+weekdaysBetween-1 : milestoneEpisode-(weekdaysBetween-1);
+          const epItem=document.createElement('div'); epItem.classList.add('task-item','episode-task'); epItem.textContent=`${episodeNumber}화`;
+          const key=`${fullDate}_바퀴멘터리 ${episodeNumber}화`; if((window.taskStatus||{})[key]) epItem.classList.add('complete');
+          epItem.addEventListener('click',async(e)=>{ e.stopPropagation(); if(!window.ensureLogin||!window.ensureLogin()) return; window.taskStatus=window.taskStatus||{}; window.taskStatus[key]=!window.taskStatus[key]; await window.cloudSaveStateOnly(); renderCalendar();});
+          dayDiv.appendChild(epItem);
         }
-      });
 
-      rightBox.appendChild(uploaderBtn);
-      rightBox.appendChild(likeBtn);
-      rightBox.appendChild(countSpan);
-      rightBox.appendChild(deleteBtn);
-
-      div.appendChild(songDetails);
-      div.appendChild(rightBox);
-
-      div.addEventListener('click', () => {
-        if (globalState.isBusterCallMode) {
-          const now = Date.now();
-          const last = globalState.lastBusterCallTimestamp;
-          if (now - last > globalState.busterCallCoolDown) {
-            busterCall(item.videoId);
-            globalState.isBusterCallMode = false;
-            busterCallToggleBtn.classList.remove('active');
-          } else {
-            const remaining = Math.ceil((globalState.busterCallCoolDown - (now - last)) / 1000);
-            showMessage(`버스터콜은 ${remaining}초 후 가능`, 'error');
-            globalState.isBusterCallMode = false;
-            busterCallToggleBtn.classList.remove('active');
+        fixedSchedules.forEach(sch=>{
+          if(sch.daysOfWeek.includes(dayOfWeek)){
+            const t=document.createElement('div'); t.classList.add('task-item',sch.colorClass); t.textContent=sch.title;
+            const key=`${fullDate}_${sch.title}`; if((window.taskStatus||{})[key]) t.classList.add('complete');
+            t.addEventListener('click',async(e)=>{ e.stopPropagation(); if(!window.ensureLogin||!window.ensureLogin()) return; window.taskStatus=window.taskStatus||{}; window.taskStatus[key]=!window.taskStatus[key]; await window.cloudSaveStateOnly(); renderCalendar();});
+            dayDiv.appendChild(t);
           }
-        } else {
-          const activeList = getVisibleList();
-          const songIndex = activeList.findIndex(song => song.videoId === item.videoId);
-          if (songIndex !== -1) {
-            playVideo(songIndex);
-            showMessage("해당 곡 재생");
-          }
+        });
+
+        (window.customTasks||[]).filter(t=>t.date===fullDate).forEach(task=>{
+          const el=document.createElement('div'); el.classList.add('task-item','custom-task'); el.textContent=task.title;
+          if(task.complete) el.classList.add('complete');
+          el.addEventListener('click',async(e)=>{ if(e.detail===1){ if(!window.ensureLogin||!window.ensureLogin()) return; task.complete=!task.complete; await window.cloudSaveAll(); renderCalendar(); } else if(e.detail===2){ openModal(task); }});
+          dayDiv.appendChild(el);
+        });
+
+        dayDiv.addEventListener('click',(e)=>{ if(e.target.classList.contains('calendar-day')||e.target.classList.contains('day-number')) openModal({date:fullDate});});
+        calendarGrid.appendChild(dayDiv);
+      }
+    };
+
+    // 유튜브 썸네일 URL 추출
+    function getYoutubeThumbnail(url) {
+        let videoId = null;
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        if (match && match[2].length === 11) {
+            videoId = match[2];
         }
-      });
-
-      listEl.appendChild(div);
-    });
-
-    const currentSongIsInPlaylist = playlistToRender.some(item => item.videoId === globalState.videoId);
-    if (globalState.videoId && !currentSongIsInPlaylist && playlistToRender.length > 0) {
-      let nextIndex = globalState.currentPlayingIndex;
-      if (nextIndex >= playlistToRender.length) nextIndex = playlistToRender.length - 1;
-      playVideo(nextIndex);
-    } else if (playlistToRender.length > 0 && globalState.currentPlayingIndex === -1) {
-      playVideo(0);
-    }
-
-    renderCurrentSongInfo();
-  }
-
-  // ===== 좋아요 토글 =====
-  async function handleLike(videoId, btnEl){
-    if(!userId){ showMessage("로그인 필요", 'error'); return; }
-    if(pendingLike.has(videoId)) return;
-    pendingLike.add(videoId);
-    btnEl && (btnEl.disabled = true);
-
-    const aggRef = db.collection('artifacts').doc(appId).collection('public').doc('data')
-      .collection('song_likes').doc(videoId);
-    const myRef = db.collection('users').doc(userId).collection('my_likes').doc(videoId);
-
-    try{
-      await db.runTransaction(async (tr)=>{
-        const [aggSnap, mySnap] = await Promise.all([tr.get(aggRef), tr.get(myRef)]);
-        let count = aggSnap.exists ? (aggSnap.data().likeCount || 0) : 0;
-
-        if(mySnap.exists){
-          count = Math.max(0, count - 1);
-          tr.delete(myRef);
-          tr.set(aggRef, { likeCount: count, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-        } else {
-          count = count + 1;
-          tr.set(myRef, { likedAt: firebase.firestore.FieldValue.serverTimestamp() });
-          tr.set(aggRef, { likeCount: count, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-        }
-      });
-    }catch(e){
-      console.error(e);
-      showMessage("좋아요 실패: "+e.message, 'error');
-    }finally{
-      pendingLike.delete(videoId);
-      btnEl && (btnEl.disabled = false);
-    }
-  }
-
-  // ===== 현재 곡 좋아요 UI =====
-  function renderCurrentLikeUI(){
-    const vid = globalState.videoId;
-    const mine = vid ? isLiked(vid) : false;
-    currentLikeBtn.disabled = !(likesLoaded && myLikesLoaded) || !vid;
-    currentLikeBtn.textContent = mine ? '👍' : '👍🏿';
-    currentLikeBtn.onclick = async ()=>{ if(!(likesLoaded && myLikesLoaded) || !vid) return; await handleLike(vid, currentLikeBtn); };
-    currentLikeCountEl.textContent = vid ? likeCount(vid) : 0;
-  }
-
-  // ===== 현재 곡 정보 =====
-  function updatePlayingSong(videoId) {
-    const activeList = getVisibleList();
-    const idx = activeList.findIndex(item => item.videoId === videoId);
-    if (idx !== -1) { globalState.currentPlayingIndex = idx; globalState.videoId = videoId; }
-    else { globalState.currentPlayingIndex = -1; globalState.videoId = videoId; }
-    renderCurrentSongInfo();
-  }
-
-  function renderCurrentSongInfo() {
-    const visible = getVisibleList();
-    const songToDisplay = visible.find(song => song.videoId === globalState.videoId);
-
-    if (songToDisplay) {
-      const infoButton = `<button class="current-info-btn" onclick="openInfoModal('${songToDisplay.videoId}')">&#x24D8;</button>`;
-      const songText = `<span style="font-weight: bold;">${songToDisplay.title}</span><span class="muted" style="margin-left: 5px;"> - ${songToDisplay.artist}</span>`;
-      document.getElementById('currentSongInfo').innerHTML = infoButton + songText;
-    } else if (globalState.videoId && (globalState.playbackTitle || globalState.playbackArtist)) {
-      const t = globalState.playbackTitle || '제목 미상';
-      const a = globalState.playbackArtist || '아티스트 미상';
-      const infoButton = `<button class="current-info-btn" onclick="openInfoModal('${globalState.videoId}')">&#x24D8;</button>`;
-      const songText = `<span style="font-weight: bold;">${t}</span><span class="muted" style="margin-left: 5px;"> - ${a}</span>`;
-      document.getElementById('currentSongInfo').innerHTML = infoButton + songText;
-    } else {
-      document.getElementById('currentSongInfo').innerHTML = '<span class="muted">현재 재생 중인 곡이 없습니다.</span>';
-    }
-    renderCurrentLikeUI();
-    renderCurrentSongNotes();
-  }
-
-  async function renderCurrentSongNotes() {
-    currentSongNotesEl.innerHTML = '<span class="muted">정보를 불러오는 중...</span>';
-    const videoId = globalState.videoId;
-    if (!videoId || !authed) { currentSongNotesEl.innerHTML = '<span class="muted">작성된 정보가 없습니다.</span>'; return; }
-
-    const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(videoId);
-    try {
-      const docSnap = await docRef.get();
-      if (docSnap.exists) {
-        const data = docSnap.data();
-        const uploader = data.uploader || '알 수 없음';
-        const info = data.info || '작성된 정보가 없습니다.';
-        const comment = data.comment || '작성된 댓글이 없습니다.';
-        currentSongNotesEl.innerHTML = `
-          <p><strong>올린 사람:</strong> ${uploader}</p>
-          <p><strong>노래 정보:</strong> ${info}</p>
-          <p><strong>댓글:</strong> ${comment}</p>
-        `;
-      } else {
-        currentSongNotesEl.innerHTML = '<span class="muted">작성된 정보가 없습니다.</span>';
-      }
-    } catch(e) {
-      console.error(e);
-      currentSongNotesEl.innerHTML = '<span class="muted">정보를 불러오는 데 실패했습니다.</span>';
-    }
-  }
-
-  // ===== 플레이리스트 저장 =====
-  let playlistSaveTimer = null;
-  function updatePlaylist(newPlaylist) {
-    globalState.playlist = newPlaylist;
-    savePlaylistState();
-    if (globalState.isShuffleMode) syncDeckWithVisible();
-  }
-  function savePlaylistState() {
-    if (!authed) return;
-    if (playlistSaveTimer) clearTimeout(playlistSaveTimer);
-    playlistSaveTimer = setTimeout(async () => {
-      try {
-        const ref = db.collection('artifacts').doc(appId).collection('public')
-          .doc('data').collection('playlist_state').doc('main_playlist');
-        const validPlaylist = globalState.playlist.map(item => ({ ...item, createdAt: item.createdAt || new Date() }));
-        await ref.set({ playlist: validPlaylist, lastUpdatedBy: userId, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-      } catch (e) { console.error(e); }
-    }, 300);
-  }
-
-  // ===== 재생 =====
-  function playVideo(index) {
-    const list = getVisibleList();
-    if (!list.length) return;
-    let i = Math.max(0, Math.min(index, list.length - 1));
-    const song = list[i];
-    if (song && song.videoId && isYoutubeApiReady) {
-      player.loadVideoById(song.videoId);
-      updatePlayingSong(song.videoId);
-      globalState.playbackTitle = song.title;
-      globalState.playbackArtist = song.artist;
-      if (globalState.isShuffleMode) {
-        globalState.shuffleDeck = globalState.shuffleDeck.filter(id => id !== song.videoId);
-      }
-    }
-  }
-  function playNext() {
-    if (globalState.isShuffleMode) {
-      if (globalState.shuffleDeck.length === 0) rebuildShuffleDeck();
-      const nextId = globalState.shuffleDeck.shift();
-      if (nextId) {
-        const meta = getVisibleList().find(s => s.videoId === nextId);
-        if (isYoutubeApiReady) player.loadVideoById(nextId);
-        if (meta){ globalState.playbackTitle=meta.title; globalState.playbackArtist=meta.artist; }
-        updatePlayingSong(nextId);
-        return;
-      }
-    }
-    const list = getVisibleList();
-    if (!list.length) return;
-    const idx = (globalState.currentPlayingIndex + 1) % list.length;
-    playVideo(idx);
-  }
-  function playPrev() {
-    if (globalState.isShuffleMode) { showMessage("셔플 모드에서 이전 곡은 지원하지 않습니다.", 'error'); return; }
-    const list = getVisibleList();
-    if (!list.length) return;
-    const idx = (globalState.currentPlayingIndex - 1 + list.length) % list.length;
-    playVideo(idx);
-  }
-
-  // ===== 화면 토글 =====
-  function togglePlayerVisibility() {
-    globalState.isPlayerVisible = !globalState.isPlayerVisible;
-    togglePlayerBtn.classList.toggle('active', !globalState.isPlayerVisible);
-    if (globalState.isPlayerVisible) { playerContainer.style.height = 'auto'; playerContainer.style.opacity = '1'; }
-    else { playerContainer.style.height = '0'; playerContainer.style.opacity = '0'; }
-  }
-
-  function checkBusterCallCooldown() {
-    const now = Date.now();
-    const remain = globalState.lastBusterCallTimestamp + globalState.busterCallCoolDown - now;
-    if (remain > 0) {
-      const sec = Math.ceil(remain / 1000);
-      busterCallToggleBtn.disabled = true;
-      busterCallToggleBtn.textContent = `버스터콜 (${sec}초)`;
-      setTimeout(checkBusterCallCooldown, 1000);
-    } else {
-      busterCallToggleBtn.disabled = false;
-      busterCallToggleBtn.textContent = '버스터콜';
-    }
-  }
-
-  function busterCall(videoId) {
-    if (!authed) { showMessage("로그인되지 않았습니다.", 'error'); return; }
-    try {
-      const inList = globalState.playlist.find(s => s.videoId === videoId);
-      const title = inList?.title || globalState.playbackTitle || '';
-      const artist = inList?.artist || globalState.playbackArtist || '';
-
-      db.collection('artifacts').doc(appId).collection('public')
-        .doc('data').collection('playback_state').doc('main_state')
-        .set({
-          videoId,
-          timestamp: 0,
-          title,
-          artist,
-          lastUpdatedBy: userId,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-
-      globalState.playbackTitle = title || null;
-      globalState.playbackArtist = artist || null;
-
-      const endTimestamp = firebase.firestore.Timestamp.fromMillis(Date.now() + 10000);
-      db.collection('artifacts').doc(appId).collection('public')
-        .doc('data').collection('buster_call_state').doc('main_state')
-        .set({
-          showBusterCall: true,
-          lastBusterCallTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          updatedBy: userId,
-          videoId,
-          endTimestamp
-        }, { merge: true });
-
-      // ★ 추가: 로컬 즉시 오버레이 표시 + 쿨다운 즉시 시작
-      busterCallOverlay.classList.add('show');
-      setTimeout(()=>busterCallOverlay.classList.remove('show'), 10000);
-      globalState.lastBusterCallTimestamp = Date.now();
-      checkBusterCallCooldown();
-
-      if (isYoutubeApiReady) {
-        player.loadVideoById(videoId);
-        player.playVideo();
-      }
-
-      globalState.videoId = videoId;
-      const visibleList = getVisibleList();
-      const newIndex = visibleList.findIndex(s => s.videoId === videoId);
-      globalState.currentPlayingIndex = (newIndex !== -1) ? newIndex : 0;
-      renderCurrentSongInfo();
-
-      if (globalState.isShuffleMode) {
-        globalState.shuffleDeck = globalState.shuffleDeck.filter(id => id !== videoId);
-      }
-
-    } catch (e) {
-      console.error(e);
-      showMessage("버스터콜 실패: " + e.message, 'error');
-    }
-  }
-
-  // ===== 모달 =====
-  function openInfoModal(videoId) {
-    const songItem = globalState.playlist.find(item => item.videoId === videoId);
-    if (songItem) { songTitleInput.value = songItem.title; artistInput.value = songItem.artist; }
-    else { songTitleInput.value = globalState.playbackTitle || ''; artistInput.value = globalState.playbackArtist || ''; }
-    const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(videoId);
-    docRef.get().then(docSnap => {
-      if (docSnap.exists) {
-        const data = docSnap.data();
-        uploaderInput.value = data.uploader || '';
-        infoTextarea.value = data.info || '';
-        commentTextarea.value = data.comment || '';
-      } else {
-        uploaderInput.value = ''; infoTextarea.value = ''; commentTextarea.value = '';
-      }
-    }).catch(e => { console.error(e); uploaderInput.value = ''; infoTextarea.value = 'Failed to load note.'; commentTextarea.value = ''; });
-    infoModal.style.display = 'flex';
-    window.currentInfoVideoId = videoId;
-  }
-  function closeInfoModal() { infoModal.style.display = 'none'; window.currentInfoVideoId = null; }
-  async function saveInfo() {
-    const currentInfoVideoId = window.currentInfoVideoId;
-    if (!currentInfoVideoId || !authed) return;
-    const newTitle = songTitleInput.value.trim();
-    const newArtist = artistInput.value.trim();
-
-    const newPlaylist = [...globalState.playlist];
-    const songIndex = newPlaylist.findIndex(item => item.videoId === currentInfoVideoId);
-    if (songIndex !== -1) {
-      newPlaylist[songIndex].title = newTitle;
-      newPlaylist[songIndex].artist = newArtist;
-      updatePlaylist(newPlaylist);
-    } else {
-      if (globalState.videoId === currentInfoVideoId) {
-        globalState.playbackTitle = newTitle || globalState.playbackTitle;
-        globalState.playbackArtist = newArtist || globalState.playbackArtist;
-        renderCurrentSongInfo();
-      }
-    }
-
-    const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notes').doc(currentInfoVideoId);
-    try {
-      await docRef.set({
-        uploader: uploaderInput.value.trim(),
-        info: infoTextarea.value.trim(),
-        comment: commentTextarea.value.trim(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-      showMessage("노트 저장", 'ok');
-      closeInfoModal();
-    } catch(e) {
-      console.error(e);
-      showMessage("노트 저장 실패: " + e.message, 'error');
-    }
-  }
-
-  // ===== YouTube 유틸 =====
-  async function fetchVideoDetails(videoId) {
-    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`;
-    const response = await fetch(apiUrl);
-    if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    const data = await response.json();
-    if (data.items && data.items.length > 0) {
-      const s = data.items[0].snippet;
-      return { title: s.title, artist: s.channelTitle };
-    }
-    throw new Error("Failed to find video information.");
-  }
-  function getVideoId(url) {
-    if (url.length === 11 && !url.includes(' ')) return url;
-    url = url.replace('music.youtube.com', 'www.youtube.com');
-    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
-    const match = url.match(regex);
-    return (match && match[1]) ? match[1] : null;
-  }
-  async function searchYouTubeAndAddSong(query) {
-    if (!query) { showMessage("검색어를 입력", 'error'); return; }
-    const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`;
-    try {
-      const response = await fetch(apiUrl);
-      if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
-      const data = await response.json();
-      if (data.items && data.items.length > 0) {
-        const item = data.items[0];
-        const videoId = item.id.videoId;
-        const title = item.snippet.title;
-        const artist = item.snippet.channelTitle;
-        const newPlaylist = [...globalState.playlist, { title, artist, videoId, createdAt: new Date() }];
-        updatePlaylist(newPlaylist);
-        urlInput.value = '';
-        showMessage('추가 완료', 'ok');
-      } else {
-        throw new Error("검색 결과 없음");
-      }
-    } catch (e) {
-      console.error(e);
-      showMessage("검색 실패. 수동 입력 전환", 'error');
-      manualInputDiv.style.display = 'block';
-      addBtn.textContent = '수동 추가';
-    } finally {
-      addBtn.disabled = false;
-    }
-  }
-
-  // ===== 버튼 연결 =====
-  function wireUI() {
-    addBtn.addEventListener('click', async () => {
-      const inputVal = urlInput.value.trim();
-      addBtn.textContent = '불러오는 중...';
-      addBtn.disabled = true;
-
-      const manualMode = manualInputDiv.style.display === 'block' && addBtn.textContent === '수동 추가';
-      if (manualMode) {
-        const videoId = getVideoId(inputVal);
-        const title = manualTitleInput.value.trim();
-        const artist = manualArtistInput.value.trim();
-        if (!videoId) { showMessage("유효한 링크/ID 필요", 'error'); addBtn.disabled=false; addBtn.textContent='추가'; return; }
-        if (!title || !artist) { showMessage("제목/아티스트 입력", 'error'); addBtn.disabled=false; addBtn.textContent='추가'; return; }
-        const newPlaylist = [...globalState.playlist, { title, artist, videoId, createdAt: new Date() }];
-        updatePlaylist(newPlaylist);
-        urlInput.value = ''; manualTitleInput.value = ''; manualArtistInput.value = '';
-        manualInputDiv.style.display = 'none'; addBtn.textContent = '추가';
-        showMessage('추가 완료', 'ok');
-      } else {
-        const videoId = getVideoId(inputVal);
         if (videoId) {
-          try {
-            const videoDetails = await fetchVideoDetails(videoId);
-            const newPlaylist = [...globalState.playlist, { title: videoDetails.title, artist: videoDetails.artist, videoId, createdAt: new Date() }];
-            updatePlaylist(newPlaylist);
-            urlInput.value = '';
-            showMessage('추가 완료', 'ok');
-          } catch (e) {
-            console.error(e);
-            showMessage("영상 정보 실패. 수동 입력 전환", 'error');
-            manualInputDiv.style.display = 'block';
-            addBtn.textContent = '수동 추가';
-          }
+            return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+        }
+        return null;
+    }
+
+    // 북마크 렌더링 (이미지 및 동영상 포함)
+    const renderImageBookmarks=()=>{
+      imageGrid.innerHTML='';
+      (window.imageBookmarks||[]).forEach(d=>{
+        const isVideo = d.type === 'video';
+        const imageUrl = d.url;
+        const pageUrl = d.pageUrl;
+        
+        let thumbnail = isVideo ? getYoutubeThumbnail(pageUrl) : imageUrl;
+        let iconHtml = '';
+
+        if (isVideo && !thumbnail) {
+            // 유튜브 외 다른 동영상이거나 썸네일 추출 실패 시
+            iconHtml = `<div class="icon-overlay"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></div>
+                        <div class="icon-text">${pageUrl.length > 30 ? pageUrl.substring(0, 27) + '...' : pageUrl}</div>`;
+        } else if (!isVideo) {
+            // 이미지 북마크인 경우 (썸네일은 이미지 URL 자체)
+            iconHtml = `<img src="${imageUrl}" alt="북마크된 이미지" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://placehold.co/100x120/444/fff?text=이미지+오류'"/>`;
         } else {
-          await searchYouTubeAndAddSong(inputVal);
+            // 유튜브 동영상이고 썸네일이 있는 경우
+            iconHtml = `<img src="${thumbnail}" alt="동영상 썸네일" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://placehold.co/100x120/444/fff?text=동영상+썸네일'"/>
+                        <div class="icon-overlay"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></div>`;
+        }
+
+        const card=document.createElement('div');
+        card.className='bookmark-card relative group cursor-pointer';
+        card.innerHTML=`
+          <div class="content">
+            ${iconHtml}
+          </div>
+          <button class="absolute top-2 right-2 bg-[#424242] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10" data-id="${d.id}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>`;
+        imageGrid.appendChild(card);
+        
+        // 클릭 이벤트: 동영상은 원본 페이지, 이미지는 모달
+        card.addEventListener('click',()=>{
+            if (isVideo) {
+                window.open(pageUrl, '_blank');
+            } else {
+                openImageModal(imageUrl, pageUrl);
+            }
+        });
+      });
+      
+      // 삭제 버튼 이벤트 리스너 부착
+      imageGrid.querySelectorAll('button[data-id]').forEach(btn=>{
+        btn.onclick=async(e)=>{ e.stopPropagation(); const id=e.currentTarget.dataset.id; try{ if(window.deleteImage) await window.deleteImage(id);}catch(err){ console.error(err); showAlert('북마크 삭제 중 오류가 발생했습니다.'); } };
+      });
+    };
+
+    // 작업 모달
+    const openModal=(task=null)=>{
+      window.currentTask=task;
+      if(task&&task.id){ document.getElementById('modalTitle').textContent='작업 수정'; taskTitleInput.value=task.title; taskDescriptionInput.value=task.description||''; taskDateInput.value=task.date||''; deleteTaskBtn.classList.remove('hidden'); }
+      else if(task&&task.date){ document.getElementById('modalTitle').textContent='새 작업'; taskTitleInput.value=''; taskDescriptionInput.value=''; taskDateInput.value=task.date; deleteTaskBtn.classList.add('hidden'); }
+      else{ document.getElementById('modalTitle').textContent='새 작업'; taskTitleInput.value=''; taskDescriptionInput.value=''; taskDateInput.value=''; deleteTaskBtn.classList.add('hidden'); }
+      taskModal.style.display='flex';
+    };
+    const closeModal=()=>{ taskModal.style.display='none'; };
+
+    const saveTask=async ()=>{
+      if(!window.ensureLogin||!window.ensureLogin()) return;
+      window.customTasks=window.customTasks||[]; window.taskStatus=window.taskStatus||{};
+      const title=taskTitleInput.value.trim(); const description=taskDescriptionInput.value.trim(); const date=taskDateInput.value;
+      if(!title){ showFeedbackMessage('제목을 입력해주세요.'); return; }
+      const data={ id: window.currentTask&&window.currentTask.id ? window.currentTask.id : Date.now(), title, description, date, complete: window.currentTask?.complete ?? false };
+      const idx=window.customTasks.findIndex(t=>t.id===data.id); if(idx>-1) window.customTasks[idx]=data; else window.customTasks.push(data);
+      await window.cloudSaveAll(); closeModal(); renderCalendar();
+    };
+
+    (function init(){ attachEventListeners(); renderCalendar(); })();
+
+    // ===== D&D/붙여넣기/클릭-자동붙여넣기 =====
+    function isImageUrl(u){
+      try{ new URL(u); }catch{ return false; }
+      return /\.(jpe?g|png|gif|webp|svg|avif)(\?|$)/i.test(u);
+    }
+    
+    function isVideoUrl(u){
+        if (!u) return false;
+        try { new URL(u); } catch { return false; }
+        // YouTube, Vimeo, 또는 일반적인 동영상 확장자 검사
+        return /youtu\.be|youtube\.com|vimeo\.com|\.(mp4|webm|ogg|mov)(\?|$)/i.test(u);
+    }
+
+    // 드래그앤드롭 핸들러
+    dragArea.addEventListener('dragover',(e)=>{ e.preventDefault(); dragArea.classList.add('active'); });
+    dragArea.addEventListener('dragleave',()=>{ dragArea.classList.remove('active'); });
+    dragArea.addEventListener('drop',async(e)=>{
+      e.preventDefault(); dragArea.classList.remove('active');
+      const dt=e.dataTransfer;
+      const html=dt.getData('text/html');
+      let url=null, pageUrl=null;
+      
+      // 1. 드롭된 내용에서 이미지 URL 추출 시도
+      if(html){
+        const doc=new DOMParser().parseFromString(html,'text/html');
+        const img=doc.querySelector('img');
+        if(img?.src){ url=img.src; pageUrl=dt.getData('text/uri-list')||dt.getData('URL')||null; }
+      }
+      // 2. 드롭된 내용에서 일반 URL 추출 시도
+      if(!url){ const u=dt.getData('text/uri-list')||dt.getData('URL')||dt.getData('text/plain'); if(u) { url=u; pageUrl=u; } }
+
+      // 3. 북마크 처리
+      if(url){
+          if(isImageUrl(url)){ 
+              // 이미지 URL 북마크
+              if(window.addRemoteImage){ await window.addRemoteImage(url,pageUrl); showFeedbackMessage('이미지 URL 북마크됨'); } 
+              return; 
+          } else if(isVideoUrl(url)) {
+              // 동영상 URL 북마크
+              if(window.addVideoBookmark) { await window.addVideoBookmark(url); showFeedbackMessage('동영상 URL 북마크됨'); }
+              return;
+          }
+      }
+
+      // 4. 파일 드롭 처리 (캡쳐 이미지는 붙여넣기 안내)
+      const files=[...(dt.files||[])].filter(f=>f.type.startsWith('image/'));
+      if(files.length){ showAlert('파일 드롭은 업로드하지 않습니다. 캡쳐 이미지는 붙여넣기(Ctrl/Cmd+V)를 사용하세요.'); return; }
+
+      showAlert('유효한 이미지/동영상 URL을 찾지 못했습니다.');
+    });
+
+    // 클릭: 클립보드 접근 및 자동 붙여넣기 시도
+    dragArea.addEventListener('click', async ()=>{
+      try{
+        let processed = false;
+        
+        // 1. 클립보드 이미지 처리
+        if(navigator.clipboard?.read){
+          const items=await navigator.clipboard.read();
+          for(const it of items){
+            for(const type of it.types){
+              if(type.startsWith('image/')){
+                const blob=await it.getType(type);
+                if(window.addImage){ await window.addImage(new File([blob],'clipboard-image',{type:blob.type}), null); showFeedbackMessage('클립보드 이미지 업로드됨'); processed=true; return; }
+              }
+            }
+          }
+        }
+        
+        // 2. 클립보드 텍스트 (URL) 처리
+        const t = await navigator.clipboard.readText();
+        if(t){
+            if(isImageUrl(t)){ 
+                if(window.addRemoteImage){ await window.addRemoteImage(t,t); showFeedbackMessage('클립보드 이미지 URL 북마크됨'); processed=true; return; } 
+            } else if(isVideoUrl(t)){
+                if(window.addVideoBookmark) { await window.addVideoBookmark(t); showFeedbackMessage('클립보드 동영상 URL 북마크됨'); processed=true; return; }
+            }
+        }
+        
+        if(!processed) showAlert('클립보드에서 유효한 이미지/URL을 읽지 못했습니다.');
+      }catch(e){ console.error(e); showAlert('클립보드 권한을 허용하세요.'); }
+    });
+
+    // 붙여넣기 핸들러
+    dragArea.addEventListener('paste', async (e)=>{
+      e.preventDefault();
+      const items=[...(e.clipboardData||e.originalEvent?.clipboardData)?.items||[]];
+      let foundText = null;
+
+      for(const item of items){
+        // 1. 이미지 파일 처리
+        if(item.kind==='file' && item.type.startsWith('image/')){
+          const file=item.getAsFile(); 
+          if(file && window.addImage){ await window.addImage(file,null); showFeedbackMessage('이미지 업로드됨'); return; }
+        }
+        // 2. 텍스트 처리
+        if(item.kind==='string'){
+          const txt=await new Promise(r=>item.getAsString(r));
+          if(txt){
+             if(isImageUrl(txt)){ 
+                if(window.addRemoteImage){ await window.addRemoteImage(txt,txt); showFeedbackMessage('URL 북마크됨'); return; } 
+             } else if(isVideoUrl(txt)){
+                 if(window.addVideoBookmark) { await window.addVideoBookmark(txt); showFeedbackMessage('동영상 URL 북마크됨'); return; }
+             }
+             foundText = txt;
+          }
         }
       }
-      addBtn.disabled = false;
-      addBtn.textContent = '추가';
-    });
-
-    shuffleBtn.addEventListener('click', () => {
-      globalState.isShuffleMode = !globalState.isShuffleMode;
-      shuffleBtn.classList.toggle('active', globalState.isShuffleMode);
-      if (globalState.isShuffleMode) {
-        rebuildShuffleDeck();
-        showMessage(globalState.likeSortMode===2 ? "내 좋아요 먼저 셔플" : "전체 셔플");
-      } else {
-        showMessage("셔플 해제");
+      
+      // Fallback: plain text
+      if (!foundText) {
+          const plain=e.clipboardData?.getData('text/plain');
+          if(plain){
+             if(isImageUrl(plain)){ 
+                if(window.addRemoteImage){ await window.addRemoteImage(plain,plain); showFeedbackMessage('URL 북마크됨'); return; } 
+             } else if(isVideoUrl(plain)){
+                if(window.addVideoBookmark) { await window.addVideoBookmark(plain); showFeedbackMessage('동영상 URL 북마크됨'); return; }
+             }
+          }
       }
-      updatePlayingSong(globalState.videoId);
+      
+      showAlert('붙여넣기한 항목에 유효한 이미지나 동영상 URL이 없습니다.');
     });
+  </script>
 
-    likeSortBtn.addEventListener('click', () => {
-      globalState.likeSortMode = (globalState.likeSortMode + 1) % 3;
-      likeSortBtn.classList.remove('most-liked','user-liked');
-      if (globalState.likeSortMode === 1) {
-        likeSortBtn.classList.add('most-liked');
-        showMessage("따봉 많은 순");
-      } else if (globalState.likeSortMode === 2) {
-        likeSortBtn.classList.add('user-liked');
-        showMessage("내가 누른 곡 우선");
-      } else {
-        showMessage("최신순");
+  <!-- ===== Firebase & 동기화 ===== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Firebase Config (원래 파일에서 가져옴)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCiwzde40jsz17CEz-rrMmmBrn-S6brdlE",
+      authDomain: "comicschedule-dfec7.firebaseapp.com",
+      projectId: "comicschedule-dfec7",
+      storageBucket: "comicschedule-dfec7.appspot.com",
+      messagingSenderId: "1084611276816",
+      appId: "1:1084611276816:web:aca83237bafa971ed1fa95",
+      measurementId: "G-ZNZZQRJZF9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const signInBtn=document.getElementById('signInBtn');
+    const signOutBtn=document.getElementById('signOutBtn');
+    const userInfoEl=document.getElementById('userInfo');
+    const loadingOverlay=document.getElementById('loading-overlay');
+    const provider = new GoogleAuthProvider();
+
+    async function doSignIn(){
+      try{ await signInWithPopup(auth,provider); }
+      catch(e){
+        if(e.code==='auth/popup-blocked'||e.code==='auth/unauthorized-domain'){ await signInWithRedirect(auth,provider); }
+        else{ document.getElementById('modal-message').textContent='로그인 오류: '+(e.message||e.code); document.getElementById('alert-modal').classList.remove('hidden'); }
       }
-      if (globalState.isShuffleMode) rebuildShuffleDeck();
-      renderList();
-      updatePlayingSong(globalState.videoId);
-    });
-
-    busterCallToggleBtn.addEventListener('click', () => {
-      globalState.isBusterCallMode = !globalState.isBusterCallMode;
-      busterCallToggleBtn.classList.toggle('active', globalState.isBusterCallMode);
-      busterCallToggleBtn.textContent = "버스터콜";
-      showMessage(globalState.isBusterCallMode ? "재생목록을 눌러 버스터콜 시작" : "버스터콜 해제", 'info');
-    });
-
-    prevSongBtn.addEventListener('click', () => { playPrev(); });
-    nextSongBtn.addEventListener('click', () => { playNext(); });
-    togglePlayerBtn.addEventListener('click', togglePlayerVisibility);
-
-    modalCloseBtn.addEventListener('click', closeInfoModal);
-    saveInfoBtn.addEventListener('click', saveInfo);
-    window.addEventListener('click', (event) => { if (event.target === infoModal) closeInfoModal(); });
-  }
-
-  // ===== 버스터콜 보조 =====
-  function checkBusterCallCooldown() {
-    const now = Date.now();
-    const remain = globalState.lastBusterCallTimestamp + globalState.busterCallCoolDown - now;
-    if (remain > 0) {
-      const sec = Math.ceil(remain / 1000);
-      busterCallToggleBtn.disabled = true;
-      busterCallToggleBtn.textContent = `버스터콜 (${sec}초)`;
-      setTimeout(checkBusterCallCooldown, 1000);
-    } else {
-      busterCallToggleBtn.disabled = false;
-      busterCallToggleBtn.textContent = '버스터콜';
     }
-  }
+    getRedirectResult(auth).catch(()=>{});
 
-  // ===== 전역 노출 =====
-  window.openInfoModal = openInfoModal;
+    signInBtn.onclick=()=>doSignIn();
+    signOutBtn.onclick=()=>signOut(auth);
 
-  // 시작
-  window.onload = function() { boot(); };
-</script>
+    window.cloudRefs=async ()=>{
+      const uid=auth.currentUser.uid;
+      const userPath=`users/${uid}`;
+      return {
+        tasksCol: collection(db, `${userPath}/customTasks`),
+        stateDoc: doc(db, `${userPath}/meta/appState`),
+        imagesCol: collection(db, `${userPath}/images`), // 이미지/동영상 북마크 통합 컬렉션
+      };
+    };
+
+    window.ensureLogin=()=>{
+      if(!window.isAuthReady){ document.getElementById('modal-message').textContent='데이터 로딩 중입니다.'; document.getElementById('alert-modal').classList.remove('hidden'); return false; }
+      if(!auth.currentUser){ document.getElementById('modal-message').textContent='로그인 후 이용해 주세요.'; document.getElementById('alert-modal').classList.remove('hidden'); return false; }
+      return true;
+    };
+
+    let notesTimer=null;
+    window.cloudSaveNotesDebounced=function(){ clearTimeout(notesTimer); notesTimer=setTimeout(()=>window.cloudSaveNotes&&window.cloudSaveNotes(),800); };
+
+    window.cloudSaveAll=async ()=>{
+      if(!ensureLogin()) return;
+      const { tasksCol, stateDoc } = await cloudRefs();
+      window.taskStatus=window.taskStatus||{}; window.customTasks=window.customTasks||[];
+      await setDoc(stateDoc,{taskStatus:window.taskStatus},{merge:true});
+      // FireStore에서 setDoc은 문서 ID가 없으면 생성, 있으면 덮어쓰기/병합하므로 map/reduce 대신 setDoc 사용
+      const ops=window.customTasks.map(t=>setDoc(doc(tasksCol,String(t.id)),t,{merge:true}));
+      await Promise.all(ops);
+    };
+
+    window.cloudSaveStateOnly=async ()=>{
+      if(!ensureLogin()) return;
+      const { stateDoc } = await cloudRefs();
+      window.taskStatus=window.taskStatus||{};
+      await setDoc(stateDoc,{taskStatus:window.taskStatus},{merge:true});
+    };
+
+    window.cloudSaveNotes=async ()=>{
+      if(!ensureLogin()) return;
+      const { stateDoc } = await cloudRefs();
+      const st=await getDoc(stateDoc);
+      const prev=st.exists()?(st.data()||{}):{};
+      const notesTabs=prev.notesTabs||{};
+      const activeTabButton=document.querySelector('#notes-section .notepad-tab.active');
+      if(activeTabButton){ notesTabs[activeTabButton.dataset.tab]=document.getElementById('notesArea')?.value ?? ''; }
+      await setDoc(stateDoc,{notesTabs},{merge:true});
+    };
+
+    window.deleteTask=async ()=>{
+      if(!ensureLogin() || !window.currentTask?.id){ if(typeof closeModal==='function') closeModal(); return; }
+      const { tasksCol } = await cloudRefs();
+      await deleteDoc(doc(tasksCol,String(window.currentTask.id)));
+      window.customTasks=(window.customTasks||[]).filter(t=>t.id!==window.currentTask.id);
+      if(typeof renderCalendar==='function') renderCalendar();
+    };
+
+    // ===== 북마크 저장 로직 =====
+    
+    // 동영상 북마크 저장 (URL만 저장, type: 'video')
+    window.addVideoBookmark = async (url)=>{
+      if(!ensureLogin()) return;
+      const { imagesCol } = await cloudRefs();
+      // pageUrl 필드에 동영상 URL을 저장
+      await addDoc(imagesCol,{ pageUrl: url, url: null, type:'video', timestamp:new Date() }); 
+    };
+    
+    // 이미지 URL만 저장 (type: 'remote')
+    window.addRemoteImage = async (url, pageUrl)=>{
+      if(!ensureLogin()) return;
+      const { imagesCol } = await cloudRefs();
+      await addDoc(imagesCol,{ url, pageUrl: pageUrl||null, type:'remote', timestamp:new Date() });
+    };
+    
+    // imgbb 업로드(붙여넣기/클립보드 이미지 전용, type: 'imgbb')
+    window.addImage = async (fileOrUrl, pageUrl)=>{
+      if(!ensureLogin()) return;
+      try{
+        const { imagesCol } = await cloudRefs();
+        const form=new FormData();
+        // fileOrUrl이 string인 경우는 현재 Paste/Click 핸들러에서 사용되지 않지만, 기존 코드를 유지합니다.
+        if(typeof fileOrUrl==='string'){ form.append('image', fileOrUrl); }
+        else{ form.append('image', fileOrUrl); }
+        const res=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`,{method:'POST',body:form});
+        const json=await res.json();
+        if(!json.success) throw new Error(json?.error?.message || 'imgbb 업로드 실패');
+        const link=json.data?.url || json.data?.display_url;
+        const deleteUrl=json.data?.delete_url || null;
+        const deleteId = deleteUrl ? (deleteUrl.match(/\/image\/([^/?#]+)/)?.[1] || null) : null;
+
+        await addDoc(imagesCol,{ url:link, pageUrl:pageUrl||null, type:'imgbb', imgbb_delete_url:deleteUrl, imgbb_delete_id:deleteId, timestamp:new Date() });
+      }catch(err){
+        document.getElementById('modal-message').textContent='이미지 추가 실패: '+(err.message||'오류');
+        document.getElementById('alert-modal').classList.remove('hidden');
+      }
+    };
+
+    // 북마크 삭제
+    window.deleteImage = async (id)=>{
+      if(!ensureLogin()) return;
+      try{
+        const { imagesCol } = await cloudRefs();
+        // window.imageBookmarks는 onSnapshot을 통해 실시간으로 업데이트됨
+        const row=(window.imageBookmarks||[]).find(d=>d.id===id); 
+        
+        if(!row) throw new Error('북마크 항목을 찾을 수 없습니다.');
+        
+        if(row.type==='remote' || row.type === 'video'){
+          // remote 이미지 또는 동영상 북마크는 Firestore 문서만 삭제
+          await deleteDoc(doc(imagesCol,id));
+          showFeedbackMessage('북마크가 삭제되었습니다.');
+          return;
+        }
+        
+        if(row.type==='imgbb'){
+          // imgbb 업로드 이미지는 imgbb에서도 삭제 시도 후, Firestore 문서 삭제
+          const delUrl=row.imgbb_delete_url||null;
+          if(delUrl){ 
+            try{ 
+                // imgbb 삭제 API 호출 (GET 요청)
+                await fetch(delUrl,{method:'GET'}); 
+                // 성공 여부와 상관없이 Firestore 문서 삭제
+            }catch(_){/* imgbb 삭제 오류는 무시 */} 
+          }
+          await deleteDoc(doc(imagesCol,id));
+          showFeedbackMessage('북마크가 삭제되었습니다.');
+        }
+      }catch(e){
+        document.getElementById('modal-message').textContent='북마크 삭제 중 오류: '+(e?.message||'unknown');
+        document.getElementById('alert-modal').classList.remove('hidden');
+      }
+    };
+
+    // ===== 실시간 동기화 =====
+    window.__unsubs=[];
+    async function setupRealtimeSync(){
+      const { tasksCol, stateDoc, imagesCol } = await cloudRefs();
+      window.__unsubs.forEach(fn=>{ try{ fn(); }catch(_){} }); window.__unsubs=[];
+
+      const unsubTasks = onSnapshot(tasksCol,(snap)=>{ window.customTasks=snap.docs.map(d=>({id:d.id,...d.data()})); if(typeof renderCalendar==='function') renderCalendar(); });
+      window.__unsubs.push(unsubTasks);
+
+      const unsubState = onSnapshot(stateDoc,(ds)=>{ const data=ds.exists()?(ds.data()||{}):{}; window.taskStatus=data.taskStatus||{}; window.__notesTabs=data.notesTabs||{}; const activeTabButton=document.querySelector('#notes-section .notepad-tab.active'); const notesAreaEl=document.getElementById('notesArea'); if(notesAreaEl&&activeTabButton){ notesAreaEl.value=window.__notesTabs[activeTabButton.dataset.tab]||''; } if(typeof renderCalendar==='function') renderCalendar(); });
+      window.__unsubs.push(unsubState);
+
+      const unsubImages = onSnapshot(imagesCol,(snap)=>{ 
+          // imageBookmarks에 이미지와 동영상 북마크 모두 포함
+          window.imageBookmarks=snap.docs.map(d=>({id:d.id,...d.data()})); 
+          if(typeof renderImageBookmarks==='function') renderImageBookmarks(); 
+      });
+      window.__unsubs.push(unsubImages);
+    }
+
+    onAuthStateChanged(auth, async (user)=>{
+      loadingOverlay.classList.remove('hidden'); window.isAuthReady=false;
+      if(user){
+        userInfoEl.textContent = `${user.displayName || '로그인됨'} (${user.email || ''})`;
+        signInBtn.classList.add('hidden');
+        signOutBtn.classList.remove('hidden');
+        await setupRealtimeSync();
+      }else{
+        userInfoEl.textContent=''; signOutBtn.classList.add('hidden'); signInBtn.classList.remove('hidden');
+        window.__unsubs.forEach(fn=>{ try{ fn(); }catch(_){} }); window.__unsubs=[];
+        window.customTasks=[]; window.taskStatus={}; window.imageBookmarks=[]; window.__notesTabs={};
+        if(typeof renderCalendar==='function') renderCalendar(); if(typeof renderImageBookmarks==='function') renderImageBookmarks(); const na=document.getElementById('notesArea'); if(na) na.value='';
+      }
+      loadingOverlay.classList.add('hidden'); window.isAuthReady=true;
+    });
+  </script>
 </body>
 </html>
