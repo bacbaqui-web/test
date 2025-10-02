@@ -117,14 +117,8 @@
         word-break: break-all;
     }
     
-    /* 인스타그램 스타일 */
-    .bookmark-card .instagram-overlay {
-        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-        background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
-        color: white; padding: 10px;
-        text-align: center;
-    }
+    /* 인스타그램 스타일 (이제 직접 임베드 코드를 사용하므로 이 스타일은 사용하지 않음) */
+    .bookmark-card .instagram-overlay { display: none; } 
 
 
     @media (max-width:768px){
@@ -153,20 +147,20 @@
         background-color: transparent;
         padding: 0;
         box-shadow: none;
-        width: 90%; 
-        max-width: 100%; /* 가로 제한 해제 */
-        height: auto;
-        max-height: 90%; 
+        /* Set max dimensions based on viewport to prioritize height */
+        max-width: 90vw; /* 90% viewport width */
+        max-height: 90vh; /* 90% viewport height (세로에 맞춤) */
+        width: auto; 
+        height: auto; 
         display: flex;
         justify-content: center;
         align-items: center;
     }
     #modalImage {
-        width: auto; /* 페이지에 맞게 조정 */
-        height: auto; 
-        max-width: 100%; /* 부모 컨테이너(모달 내용)를 넘지 않도록 */
-        max-height: 90vh; /* 화면 높이(90vh)를 넘지 않도록 (세로 맞춤) */
-        object-fit: contain; /* 이미지가 잘리지 않고 전체가 보이도록 */
+        /* Fill the constrained container while maintaining aspect ratio */
+        width: 100%; /* Fill 100% of the constrained width */
+        height: 100%; /* Fill 100% of the constrained height */
+        object-fit: contain; /* Crucial: Ensures the whole image is visible within 90vw/90vh without being cut off */
     }
     
     /* 북마크 제목 수정 모달 스타일 */
@@ -537,6 +531,32 @@
         }
         return null;
     }
+    
+    // 인스타그램 임베드 스크립트를 로드하고 콘텐츠를 처리하는 함수
+    function initializeInstagramEmbeds() {
+        if (window.instgrm && window.instgrm.Embeds) {
+            // 스크립트가 이미 로드된 경우, 새 게시물을 처리
+            window.instgrm.Embeds.process();
+            return;
+        }
+
+        // 스크립트 로드
+        const scriptId = 'instagram-embed-script';
+        if (!document.getElementById(scriptId)) {
+            const script = document.createElement('script');
+            script.id = scriptId;
+            script.async = true;
+            script.src = '//www.instagram.com/embed.js';
+            document.head.appendChild(script);
+            
+            // 스크립트 로드 후에도 process를 한 번 더 호출할 수 있도록 window에 핸들러 등록
+            script.onload = () => {
+                if (window.instgrm && window.instgrm.Embeds) {
+                    window.instgrm.Embeds.process();
+                }
+            };
+        }
+    }
 
     // 북마크 렌더링 (이미지 및 동영상 포함)
     const renderImageBookmarks=()=>{
@@ -571,23 +591,26 @@
                         </div>`;
         } else if (isInstagram) {
              // 인스타그램 게시물 북마크 (퍼가기 코드 사용)
-             const displayTitle = d.title || '인스타그램 게시물';
-             const embedUrl = d.embedUrl || pageUrl; // 저장된 URL (원래 URL 또는 퍼가기 코드에서 추출한 URL)
-             
-             iconHtml = `<div class="instagram-overlay">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 9h.01M15 7a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V9a2 2 0 012-2h2z" />
-                            </svg>
-                            <span class="link-title-text text-white">${displayTitle}</span>
-                            <span class="link-url-text text-white opacity-70">클릭 시 원본 이동</span>
-                        </div>`;
-             // 인스타그램 게시물 클릭 시 이동할 URL은 embed code에서 추출한 URL을 사용하거나 pageUrl을 사용
+             // 원본 URL 추출 (클릭 시 이동용)
              const parser = new DOMParser();
              const doc = parser.parseFromString(d.embedCode || '', 'text/html');
              const blockquote = doc.querySelector('blockquote.instagram-media');
-             if(blockquote && blockquote.cite) urlToOpen = blockquote.cite;
+             if (blockquote && blockquote.cite) urlToOpen = blockquote.cite;
              else urlToOpen = pageUrl;
+             
+             const displayTitle = d.title || 'Instagram Post (클릭 시 원본 이동)';
+             
+             // Embed Code를 직접 삽입하여 인스타그램 미리보기가 렌더링되도록 함.
+             // z-index를 사용하여 제목 오버레이가 임베드 위에 오도록 설정.
+             // 인스타그램 임베드는 높이가 가변적이며, Masonry 레이아웃이 이를 처리하도록 기대함.
+             iconHtml = `
+                <div class="w-full h-full relative z-0">
+                    <!-- 인스타그램 임베드 코드 (직접 렌더링) -->
+                    ${d.embedCode || ''}
+                    <!-- 임베드가 로드되기를 기다리는 동안 제목 표시 -->
+                    <div class="absolute top-0 left-0 right-0 p-2 bg-black bg-opacity-70 text-white text-sm font-bold z-10">${displayTitle}</div>
+                </div>
+             `;
 
         } else if (isVideo && !thumbnail) {
             // 유튜브 외 다른 동영상이거나 썸네일 추출 실패 시
@@ -662,6 +685,9 @@
           }
         };
       });
+      
+      // 인스타그램 임베드 스크립트 초기화 및 렌더링
+      initializeInstagramEmbeds();
     };
 
     // 작업 모달
