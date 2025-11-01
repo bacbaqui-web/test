@@ -216,8 +216,8 @@
 </head>
 <body class="text-white">
 
-  <!-- 로그인 바 (숨김 처리) -->
-  <div id="authBar" class="w-full max-w-5xl mx-auto flex items-center justify-end gap-2 mb-2 hidden">
+  <!-- 1. 로그인 바 (다시 표시) -->
+  <div id="authBar" class="w-full max-w-5xl mx-auto flex items-center justify-end gap-2 mb-2">
     <span id="userInfo" class="text-sm opacity-80"></span>
     <button id="signInBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">Google 로그인</button>
     <button id="signOutBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded hidden">로그아웃</button>
@@ -983,17 +983,17 @@
       getAuth, 
       onAuthStateChanged, 
       signInAnonymously, 
-      signInWithCustomToken 
+      signInWithCustomToken,
+      // 2. 깃허브용 Import 추가
+      GoogleAuthProvider,
+      signInWithPopup,
+      signOut
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { 
       getFirestore, doc, deleteDoc, collection, onSnapshot, 
       addDoc, updateDoc, serverTimestamp, query, orderBy, 
       limit, deleteField, setDoc, getDoc
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    // import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"; // 오류 수정: 제거됨
-
-    // 디버그 로그 비활성화
-    // setLogLevel('Debug'); // 오류 수정: 제거됨
     
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -1001,7 +1001,28 @@
     
     window.auth = auth;
 
+    // 3. 로그인/로그아웃 버튼 DOM 및 로직 추가
+    const signInBtn=document.getElementById('signInBtn');
+    const signOutBtn=document.getElementById('signOutBtn');
+    const userInfoEl=document.getElementById('userInfo');
     const loadingOverlay=document.getElementById('loading-overlay');
+    const provider = new GoogleAuthProvider();
+
+    async function doSignIn(){
+      try { 
+        await signInWithPopup(auth, provider); 
+      } catch(e) {
+        console.error("Firebase Auth Error:", e);
+        let errorMessage = e.message || e.code;
+        if (e.code === 'auth/popup-blocked') {
+          errorMessage = "브라우저가 팝업을 차단했습니다. 팝업을 허용해주세요.";
+        }
+        showAlert('로그인 오류: ' + errorMessage);
+      }
+    }
+    
+    signInBtn.onclick=()=>doSignIn();
+    signOutBtn.onclick=()=>signOut(auth);
 
     const comicsCollectionPath = `artifacts/${appId}/public/data/comics`;
     const configCollectionPath = `artifacts/${appId}/public/data/config`;
@@ -1016,6 +1037,8 @@
     window.ensureLogin=()=>{
       if(!window.isAuthReady){ showAlert('데이터 로딩 중입니다.'); return false; }
       if(!auth.currentUser){ showAlert('로그인 후 이용해 주세요.'); return false; }
+      
+      // '익명' 사용자일 경우, 관리자 기능(대전 시작 등) 차단
       if(auth.currentUser.isAnonymous) {
         showAlert('콘텐츠를 업로드하거나 관리하려면 Google 계정으로 로그인해야 합니다.\n(현재 익명으로 로그인됨)');
         return false;
@@ -1143,6 +1166,7 @@
 
     // '따봉' (좋아요) 토글 기능
     window.toggleLike = async (id) => {
+      // 4. 깃허브용: 'ensureLogin' 대신 'isAuthReady'와 'currentUser'로만 체크
       if(!window.isAuthReady){ showAlert('데이터 로딩 중입니다.'); return false; }
       if(!auth.currentUser){ showAlert('로그인 후 이용해 주세요.'); return false; }
       
@@ -1290,22 +1314,52 @@
       window.__unsubs.push(unsubConfig);
     }
 
+    // 4. onAuthStateChanged 로직 수정 (깃허브/Canvas 겸용)
     onAuthStateChanged(auth, async (user)=>{
       loadingOverlay.classList.remove('hidden'); 
       window.isAuthReady=false;
       const currentUserId = user ? user.uid : null;
       
       if(user){
+        // === 로그인 상태 ===
+        // 깃허브용: UI 업데이트
+        if (user.isAnonymous) {
+          userInfoEl.textContent = '익명 (로그인하여 참여)';
+        } else {
+          userInfoEl.textContent = `${user.displayName || '로그인됨'} (${user.email || ''})`;
+        }
+        signInBtn.classList.add('hidden');
+        signOutBtn.classList.remove('hidden');
+        
+        // 데이터 구독 시작
         await setupRealtimeSync(currentUserId);
+        
       } else {
+        // === 로그아웃 상태 ===
+        // 깃허브용: UI 업데이트
+        userInfoEl.textContent=''; 
+        signOutBtn.classList.add('hidden'); 
+        signInBtn.classList.remove('hidden');
+        
+        // 구독 해제
+        window.__unsubs.forEach(fn=>{ try{ fn(); }catch(_){} }); 
+        window.__unsubs=[];
+        
+        // 갤러리 비우기
+        window.comics=[];
+        if(typeof renderComics==='function') renderComics(); 
+        
+        // Canvas / 깃허브 환경 분기
         try {
           if (initialAuthToken) {
+            // Canvas 환경: 토큰으로 로그인 시도
             await signInWithCustomToken(auth, initialAuthToken);
           } else {
+            // 깃허브 환경: 익명으로 로그인 시도
             await signInAnonymously(auth);
           }
         } catch (error) {
-          console.error("익명 로그인 실패:", error);
+          console.error("자동 로그인 실패:", error);
           loadingOverlay.classList.add('hidden');
           window.isAuthReady = true;
           showAlert("데이터베이스 연결에 실패했습니다. 페이지를 새로고침해주세요.");
