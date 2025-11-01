@@ -630,6 +630,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
     // 필요한 Firestore 모듈 추가
     import { 
       getFirestore, doc, deleteDoc, collection, onSnapshot, 
@@ -637,18 +638,21 @@
       limit, deleteField 
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // Firebase Config (새 프로젝트 정보로 교체)
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
     const firebaseConfig = {
-      apiKey: "AIzaSyBqtajmEiPydo7ibbGePF_oEB0GXcZI6E",
+      apiKey: "AIzaSyBqtqjmEIPydo7ibbGePf_oEb0GXVcZI6E",
       authDomain: "ne-cut-battle.firebaseapp.com",
       projectId: "ne-cut-battle",
-      storageBucket: "ne-cut-battle.appspot.com",
+      storageBucket: "ne-cut-battle.firebasestorage.app",
       messagingSenderId: "565872837701",
       appId: "1:565872837701:web:3c57c4bab8d37644018f2c",
       measurementId: "G-EDHCL46T9M"
     };
 
+    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
     const auth = getAuth(app);
     const db = getFirestore(app);
     
@@ -904,5 +908,6 @@
   </script>
 </body>
 </html>
+
 
 
