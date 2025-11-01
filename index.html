@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>제2회 네컷만화대전</title>
+  <title>네컷만화 대전</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet"/>
   <style>
@@ -59,7 +59,44 @@
     #uploadModal { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; justify-content: center; align-items: center; z-index: 1000; }
     #uploadModal .modal-content { background: #2a2a2a; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.5); width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; } /* 다크 모드 모달 */
     #imagePreviewArea { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 1rem; padding: 10px; background: #1a1a1a; border-radius: 8px; min-height: 100px; } /* 다크 모드 배경 */
-    .preview-image { width: 100%; height: auto; object-fit: cover; border-radius: 4px; aspect-ratio: 1 / 1; }
+    
+    /* --- 드래그 앤 드롭 및 번호 표시용 CSS --- */
+    .preview-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      cursor: grab;
+      transition: transform 0.2s ease;
+    }
+    .preview-container.dragging {
+      opacity: 0.5;
+      transform: scale(0.95);
+    }
+    .preview-image { 
+      width: 100%; 
+      height: 100%;
+      object-fit: cover; 
+      border-radius: 4px; 
+    }
+    .preview-number {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: rgba(0, 0, 0, 0.75);
+      color: white;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 10;
+      pointer-events: none; /* 드래그 이벤트를 방해하지 않도록 함 */
+    }
+    /* --- --- */
+
     .file-input-label { background: #444; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; text-align: center; font-weight: 700; transition: background .2s; }
     .file-input-label:hover { background: #555; }
     #comicFilesInput { display: none; }
@@ -95,9 +132,9 @@
     <button id="signOutBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded hidden">로그아웃</button>
   </div>
 
-  <!-- 제목 수정: 흰색 통일, 느낌표 제거 -->
+  <!-- 제목 수정: '제2회' 삭제 -->
   <h1 class="text-3xl font-bold text-center text-white">
-    제2회 네컷만화 대전
+    네컷만화 대전
   </h1>
   
   <!-- 다크 모드 텍스트 (기존) -->
@@ -141,7 +178,7 @@
       <div class="mb-4">
         <label for="comicFilesInput" class="file-input-label">만화 이미지 선택 (최대 4장)</label>
         <input type="file" id="comicFilesInput" multiple accept="image/*">
-        <p class="text-xs text-gray-400 mt-2">팁: 1~4장의 이미지를 선택하세요. 4장이 넘으면 4장까지만 업로드됩니다.</p>
+        <!-- 팁 문구 삭제 -->
       </div>
       <div id="imagePreviewArea">
         <span class="text-gray-500 text-sm self-center justify-self-center col-span-2">이미지 미리보기</span>
@@ -313,6 +350,8 @@
     window.currentTopic = "";
     window.currentContestStatus = "";
     window.comicToPreview = null;
+    let uploadedFiles = []; // 드래그 앤 드롭으로 순서를 바꿀 수 있는 파일 배열
+    let dragStartIndex = null; // 드래그 시작 인덱스
 
     // DOM
     const comicGrid = document.getElementById('comic-grid');
@@ -440,30 +479,99 @@
       if (!window.ensureLogin || !window.ensureLogin(true)) return;
       uploadNickname.value = window.auth?.currentUser?.displayName || '';
       comicFilesInput.value = '';
+      uploadedFiles = []; // 업로드 파일 배열 초기화
       imagePreviewArea.innerHTML = '<span class="text-gray-500 text-sm self-center justify-self-center col-span-2">이미지 미리보기</span>';
       uploadModal.style.display = 'flex';
     };
     const closeUploadModal = () => { uploadModal.style.display = 'none'; };
 
+    // --- 드래그 앤 드롭 기능 함수 ---
+
     const handleFilePreview = () => {
-      imagePreviewArea.innerHTML = '';
       const files = comicFilesInput.files;
       if (files.length === 0) {
+        uploadedFiles = [];
+      } else {
+        uploadedFiles = Array.from(files).slice(0, 4);
+      }
+      renderPreviewArea();
+    };
+
+    const renderPreviewArea = () => {
+      imagePreviewArea.innerHTML = '';
+      if (uploadedFiles.length === 0) {
         imagePreviewArea.innerHTML = '<span class="text-gray-500 text-sm self-center justify-self-center col-span-2">이미지 미리보기</span>';
         return;
       }
-      const filesToShow = Array.from(files).slice(0, 4);
-      filesToShow.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = document.createElement('img');
-          img.src = e.target.result;
-          img.className = 'preview-image';
-          imagePreviewArea.appendChild(img);
-        };
-        reader.readAsDataURL(file);
+
+      uploadedFiles.forEach((file, index) => {
+        const container = document.createElement('div');
+        container.className = 'preview-container';
+        container.draggable = true;
+        container.dataset.index = index;
+
+        const numberSpan = document.createElement('span');
+        numberSpan.className = 'preview-number';
+        numberSpan.textContent = index + 1;
+
+        const img = document.createElement('img');
+        // File 객체로 Object URL 생성
+        img.src = URL.createObjectURL(file); 
+        img.className = 'preview-image';
+        // 메모리 누수 방지를 위해 로드 후 Object URL 해제
+        img.onload = () => {
+          URL.revokeObjectURL(img.src); 
+        }
+
+        container.appendChild(numberSpan);
+        container.appendChild(img);
+        imagePreviewArea.appendChild(container);
+
+        // 드래그 이벤트 리스너 추가
+        container.addEventListener('dragstart', onDragStart);
+        container.addEventListener('dragover', onDragOver);
+        container.addEventListener('drop', onDrop);
+        container.addEventListener('dragend', onDragEnd);
       });
     };
+
+    const onDragStart = (e) => {
+      dragStartIndex = Number(e.currentTarget.dataset.index);
+      e.currentTarget.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const onDragOver = (e) => {
+      e.preventDefault(); // 드롭을 허용하기 위해 필수
+    };
+
+    const onDrop = (e) => {
+      e.preventDefault();
+      const dragEndIndex = Number(e.currentTarget.dataset.index);
+      swapFiles(dragStartIndex, dragEndIndex);
+      dragStartIndex = null;
+      onDragEnd(e); // 클래스 정리
+    };
+
+    const onDragEnd = (e) => {
+      // 모든 요소에서 dragging 클래스 제거
+      imagePreviewArea.querySelectorAll('.preview-container').forEach(el => {
+        el.classList.remove('dragging');
+      });
+    };
+
+    const swapFiles = (fromIndex, toIndex) => {
+      if (fromIndex === toIndex) return;
+      
+      // uploadedFiles 배열에서 요소 순서 변경
+      const item = uploadedFiles.splice(fromIndex, 1)[0];
+      uploadedFiles.splice(toIndex, 0, item);
+      
+      // 변경된 순서로 미리보기 영역 다시 렌더링
+      renderPreviewArea();
+    };
+
+    // --- ---
 
     const closeAllPasswordModals = () => {
       contestPasswordModal.style.display = 'none';
@@ -811,20 +919,26 @@
     window.handleSubmitComic = async () => {
       if (!ensureLogin(true)) return;
       const nickname = document.getElementById('uploadNickname').value.trim();
-      const files = document.getElementById('comicFilesInput').files;
+      
+      // FileList가 아닌, 순서 변경이 적용된 'uploadedFiles' 배열을 사용합니다.
+      const filesToUpload = uploadedFiles.slice(0, 4); 
+
       if (!nickname) { showAlert('닉네임을 입력해주세요.'); return; }
-      if (files.length === 0) { showAlert('하나 이상의 이미지를 선택해주세요.'); return; }
+      if (filesToUpload.length === 0) { showAlert('하나 이상의 이미지를 선택해주세요.'); return; }
       if (!window.currentTopic) { showAlert('현재 진행 중인 대전이 없습니다.'); return; }
-      const filesToUpload = Array.from(files).slice(0, 4);
+      
       loadingOverlay.classList.remove('hidden');
       showFeedbackMessage(`만화 ${filesToUpload.length}장 업로드 중...`);
       try {
         const refs = cloudRefs();
         if (!refs) return;
-        const uploadPromises = filesToUpload.map(file => uploadToImgBB(file));
+
+        // 순서가 보장된 filesToUpload 배열을 사용
+        const uploadPromises = filesToUpload.map(file => uploadToImgBB(file)); 
         const uploadedImagesData = await Promise.all(uploadPromises);
+        
         await addDoc(refs.comicsCol, {
-          images: uploadedImagesData,
+          images: uploadedImagesData, // 업로드된 이미지 데이터 (순서 보장됨)
           uploaderId: auth.currentUser.uid,
           uploaderName: nickname,
           uploaderDisplayName: auth.currentUser.displayName || '익명',
