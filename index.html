@@ -1,766 +1,714 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>네컷만화대전</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Inter 폰트 -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Noto Sans KR 폰트 (한국어용) -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        /* 기본 폰트 설정 */
-        body {
-            font-family: 'Inter', 'Noto Sans KR', sans-serif;
-        }
-        /* 메시지 박스 애니메이션 */
-        #message-box {
-            transition: opacity 0.5s, transform 0.5s;
-        }
-        .message-show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .message-hide {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        
-        /* 모달 스타일 */
-        .modal {
-            display: none; /* 기본 숨김 */
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.6);
-            /* Flexbox로 중앙 정렬 */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: auto;
-            padding: 24px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 500px;
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .modal-close-btn {
-            position: absolute;
-            top: 12px;
-            right: 16px;
-            color: #aaa;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .modal-close-btn:hover,
-        .modal-close-btn:focus {
-            color: black;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>네컷만화대전</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght400;700&display=swap" rel="stylesheet"/>
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: #000;
+      color: #fff;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+      flex-direction: column;
+      gap: 1rem; /* 콘텐츠 간 간격 추가 */
+    }
+    .section-card {
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,.3);
+      text-align: center;
+      width: 100%;
+      max-width: 1200px; /* 더 넓은 갤러리를 위해 최대 너비 증가 */
+    }
+    .drag-area {
+      border: 2px dashed #4b4b4b;
+      transition: all .3s ease;
+      padding: 24px;
+    }
+    .drag-area.active {
+      border-color: #6b6b6b;
+      background-color: #2a2a2a;
+    }
+    
+    /* 네컷만화 Masonry 레이아웃 */
+    #comic-grid {
+      column-count: 2; /* 기본 2열 */
+      column-gap: 1rem;
+      margin-top: 1.5rem; /* mt-6 */
+      display: block;
+    }
+    @media (min-width: 640px) { /* sm: 3열 */
+      #comic-grid { column-count: 3; }
+    }
+    @media (min-width: 1024px) { /* lg: 4열 */
+      #comic-grid { column-count: 4; }
+    }
+    @media (min-width: 1280px) { /* xl: 5열 */
+      #comic-grid { column-count: 5; }
+    }
 
-        /* 이미지 업로드 영역 (index (19).html 참고) */
-        #image-upload-area {
-            border: 2px dashed #cbd5e1; /* gray-300 */
-            border-radius: 8px;
-            padding: 24px;
-            text-align: center;
-            cursor: pointer;
-            transition: background-color 0.3s, border-color 0.3s;
-            background-color: #f8fafc; /* gray-50 */
-        }
-        #image-upload-area.drag-over {
-            border-color: #3b82f6; /* blue-500 */
-            background-color: #eff6ff; /* blue-50 */
-        }
-        #image-upload-area:hover {
-            border-color: #94a3b8; /* gray-400 */
-        }
-        
-        /* 이미지 미리보기 */
-        #image-preview {
-            max-height: 300px;
-            width: 100%;
-            object-fit: contain;
-            border-radius: 4px;
-        }
-    </style>
+    /* 네컷만화 카드 스타일 (북마크 카드에서 가져옴) */
+    .comic-card {
+      position: relative;
+      transition: transform .2s ease-in-out; 
+      background: #333; 
+      border-radius: 8px; 
+      overflow: hidden; 
+      margin-bottom: 1rem; /* 세로 간격 */
+      break-inside: avoid; /* 카드 분할 방지 */
+      width: 100%;
+      display: block;
+    }
+    .comic-card:hover {
+      transform: translateY(-5px);
+    }
+    
+    .comic-card .content {
+      display: block; 
+      width: 100%;
+      height: auto;
+      overflow: hidden;
+      background-color: #1a1a1a;
+      min-height: 80px; 
+      position: relative;
+    }
+    
+    .comic-card img {
+      position: static; 
+      width: 100%;
+      height: auto; /* 실제 비율 사용 */
+      display: block;
+      object-fit: contain; 
+    }
+
+    /* 카드 하단 정보 (업로더, 좋아요) */
+    .comic-card .info-footer {
+      padding: 12px;
+      background: #333;
+      text-align: left;
+    }
+
+    .comic-card .uploader-name {
+      font-size: 0.8rem;
+      color: #ccc;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .comic-card .like-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 따봉 버튼 스타일 */
+    .like-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #555;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+    }
+    /* 사용자가 이미 좋아요 누른 버튼 스타일 */
+    .like-btn.liked {
+      background: #2563eb; /* Tailwind blue-600 */
+      color: white;
+    }
+
+    .like-btn:hover:not(.liked) {
+      background: #666;
+    }
+    
+    .like-count {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #ddd;
+    }
+
+
+    /* 이미지 모달 스타일 */
+    #imageModal.modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      display: none; justify-content: center; align-items: center; z-index: 1000;
+    }
+    #imageModal .modal-content {
+      background-color: transparent; padding: 0; box-shadow: none;
+      max-width: 90vw; max-height: 90vh;
+      width: auto; height: auto; 
+      display: flex; justify-content: center; align-items: center;
+      cursor: pointer;
+    }
+    #modalImage {
+      width: auto; height: auto; 
+      max-width: 100%; max-height: 100%;
+      object-fit: contain;
+    }
+    
+    @media (max-width:768px){
+      body{padding:12px;gap:0.5rem}.section-card{padding:12px;border-radius:0}
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="text-white">
 
-    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+  <!-- 로그인 바 (그대로 유지) -->
+  <div id="authBar" class="w-full max-w-5xl mx-auto flex items-center justify-end gap-2 mb-2">
+    <span id="userInfo" class="text-sm opacity-80"></span>
+    <button id="signInBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">Google 로그인</button>
+    <button id="signOutBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded hidden">로그아웃</button>
+  </div>
+
+  <!-- 메인 타이틀 -->
+  <h1 class="text-3xl font-bold text-center text-white">
+    <span class="text-blue-400">네컷만화</span>
+    <span class="text-white">대전</span>
+    <span class="text-red-400">!</span>
+  </h1>
+
+  <!-- 만화 업로드 및 갤러리 섹션 -->
+  <div id="comics-section" class="section-card text-left">
+    
+    <section id="drag-area" class="drag-area rounded-lg p-6 flex items-center justify-center text-center text-[#999] font-medium cursor-pointer" title="클릭하면 클립보드에서 자동 붙여넣기 시도">
+      <div>
+        <p class="text-lg">여기에 네컷만화 이미지를 드래그 앤 드롭 하세요.</p>
+        <p class="text-sm">또는, 캡쳐/이미지 붙여넣기(Ctrl/Cmd+V) 혹은 클릭 (클립보드 붙여넣기)도 가능합니다.</p>
+        <p class="text-xs text-gray-500 mt-2">(로그인 한 사용자만 업로드할 수 있습니다)</p>
+      </div>
+    </section>
+    
+    <!-- 네컷만화 갤러리 그리드 -->
+    <section id="comic-grid"></section>
+  </div>
+
+
+  <!-- 이미지 확대 모달 -->
+  <div id="imageModal" class="modal">
+    <div class="modal-content relative">
+      <button id="closeImageModalBtn" class="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full p-1 z-50">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      <img id="modalImage" src="" alt="확대 이미지" />
+      <!-- 원본 페이지 이동 버튼 제거 -->
+    </div>
+  </div>
+
+  <!-- 알림 모달 -->
+  <div id="alert-modal" class="fixed inset-0 bg-[#1a1a1a] bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-[#242424] rounded-lg p-6 shadow-xl max-w-sm mx-auto">
+      <p id="modal-message" class="text-white text-lg text-center font-medium"></p>
+      <div class="mt-4 flex justify-center">
+        <button id="modal-close-btn" class="px-4 py-2 bg-[#424242] text-white rounded-md hover:bg-[#525252]">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 로딩 오버레이 -->
+  <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-70 z-[1001] flex items-center justify-center hidden">
+    <div class="flex flex-col items-center">
+      <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-white"></div>
+      <p class="text-white mt-4 text-lg">데이터를 불러오는 중...</p>
+    </div>
+  </div>
+
+  <!-- ===== UI 스크립트 ===== -->
+  <script>
+    // ImgBB API Key (이미지 업로드용)
+    const IMGBB_API_KEY = "f64175972f4e4178332db9ae8559969b";
+
+    // 전역 상태
+    window.comics = []; // 'imageBookmarks' 대신 'comics' 사용
+    window.isAuthReady = false;
+
+    // DOM 요소
+    const dragArea = document.getElementById('drag-area');
+    const comicGrid = document.getElementById('comic-grid');
+    const imageModal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const closeImageModalBtn = document.getElementById('closeImageModalBtn');
+
+
+    // 유틸리티 함수
+    const showFeedbackMessage = (message) => {
+      const el = document.createElement('div');
+      el.textContent = message;
+      el.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.8);color:#fff;padding:16px 20px;border-radius:10px;z-index:2000;max-width:90%";
+      document.body.appendChild(el); setTimeout(()=>el.remove(),2000);
+    };
+    const showAlert = (msg) => { document.getElementById('modal-message').textContent = msg; document.getElementById('alert-modal').classList.remove('hidden'); };
+    const hideAlert = () => { document.getElementById('alert-modal').classList.add('hidden'); };
+    document.getElementById('modal-close-btn').addEventListener('click', hideAlert);
+
+    // 'pageUrl' 인자 제거 (네컷만화는 원본 페이지가 없음)
+    const openImageModal = (imageUrl) => {
+      modalImage.src = imageUrl;
+      imageModal.style.display='flex';
+    };
+    const closeImageModal = () => { imageModal.style.display = 'none'; };
+
+    // 이벤트 리스너 부착
+    const attachEventListeners=()=>{
+      closeImageModalBtn.addEventListener('click', closeImageModal);
+      imageModal.addEventListener('click',(e)=>{ if(e.target===imageModal) closeImageModal(); }); 
+      document.querySelector('#imageModal .modal-content').addEventListener('click', (e) => {
+          if (!e.target.closest('#closeImageModalBtn')) {
+              closeImageModal();
+          }
+      });
+    };
+
+    // 네컷만화 갤러리 렌더링
+    // (renderImageBookmarks 함수를 'renderComics'로 이름 변경 및 수정)
+    const renderComics = () => {
+      if (!comicGrid) return;
+      comicGrid.innerHTML = '';
+      
+      // 'window.comics'는 onSnapshot에서 실시간으로 업데이트됨 (기본 최신순 정렬)
+      const sortedComics = [...(window.comics || [])];
+
+      sortedComics.forEach(d => {
+        const imageUrl = d.imageUrl;
+        const uploaderName = d.uploaderName || '익명';
+        const likeMap = d.likes || {};
+        const likeCount = Object.keys(likeMap).length;
         
-        <!-- 헤더 -->
-        <header class="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h1 class="text-3xl font-bold text-center text-blue-600">네컷만화대전</h1>
-            <p class="text-center text-gray-600 mt-2">당신의 네컷만화를 공유하고 '따봉'을 받아보세요!</p>
-            
-            <!-- 사용자 정보 -->
-            <div class="mt-4 p-3 bg-blue-50 rounded-md text-sm text-blue-700">
-                <strong>당신의 고유 ID:</strong> <span id="user-id-display">로그인 중...</span>
-                <p class="text-xs mt-1">이 ID는 닉네임을 입력하지 않을 경우 기본 닉네임으로 사용됩니다.</p>
-            </div>
-        </header>
+        // 현재 로그인한 사용자가 좋아요를 눌렀는지 확인
+        const currentUserId = window.auth?.currentUser?.uid;
+        const userHasLiked = currentUserId && likeMap[currentUserId] === true;
 
-        <!-- 메시지 박스 -->
-        <div id="message-box" class="message-hide fixed top-5 right-5 p-4 rounded-md shadow-lg max-w-sm z-50">
-            <!-- 메시지 내용은 JS로 채워짐 -->
-        </div>
-
-        <!-- 만화 등록 버튼 -->
-        <div class="mb-8">
-            <button id="show-upload-modal-btn" 
-                    class="w-full bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300
-                           flex flex-col items-center justify-center text-gray-500 hover:text-blue-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        const card = document.createElement('div');
+        card.className = 'comic-card relative group';
+        
+        card.innerHTML = `
+          <div class="content cursor-pointer" data-action="view">
+            <img src="${imageUrl}" alt="네컷만화" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://placehold.co/400x400/444/fff?text=이미지+오류'"/>
+          </div>
+          <div class="info-footer">
+            <div class="uploader-name">${uploaderName} 님</div>
+            <div class="like-section">
+              <!-- 따봉 버튼 -->
+              <button class="like-btn ${userHasLiked ? 'liked' : ''}" data-id="${d.id}" data-action="like">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 11-3 0v-6zM6 10.333v5.167c0 .83.682 1.5 1.502 1.5h6.666A1.5 1.5 0 0015.5 15.5V8.167A1.5 1.5 0 0014 6.667h-2.167A2.5 2.5 0 009.5 4.5V3.083A1.5 1.5 0 008 1.583 1.5 1.5 0 006.5 3v7.333z" />
                 </svg>
-                <span class="mt-2 text-lg font-semibold">새 만화 제출하기</span>
-            </button>
-        </div>
-
-        <!-- 만화 갤러리 -->
-        <main>
-            <h2 class="text-2xl font-semibold mb-4">갤러리 (따봉 많은 순)</h2>
-            <div id="gallery-loading" class="text-center text-gray-500">
-                <p>만화를 불러오는 중입니다...</p>
+                <span>따봉!</span>
+              </button>
+              <!-- 좋아요 카운트 -->
+              <span class="like-count">${likeCount} 명이 좋아합니다</span>
             </div>
-            <div id="comic-gallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- 만화 카드가 여기에 동적으로 추가됩니다 -->
-            </div>
-        </main>
+          </div>
+          
+          <!-- 삭제 버튼 (자신이 올린 만화인 경우에만 표시) -->
+          ${currentUserId === d.uploaderId ? `
+          <button class="absolute top-2 right-2 bg-[#424242] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20" data-id="${d.id}" data-action="delete">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+          ` : ''}
+        `;
+        comicGrid.appendChild(card);
+      });
+      
+      // 버튼 이벤트 리스너 부착
+      comicGrid.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.onclick = async (e) => { 
+          e.stopPropagation(); 
+          const id = e.currentTarget.dataset.id;
+          const action = e.currentTarget.dataset.action;
 
-    </div>
+          if (action === 'delete') {
+            if (window.deleteComic) await window.deleteComic(id);
+          } else if (action === 'like') {
+            if (window.toggleLike) await window.toggleLike(id);
+          }
+        };
+      });
 
-    <!-- 업로드 모달 -->
-    <div id="upload-modal" class="modal hidden">
-        <div class="modal-content">
-            <span id="close-modal-btn" class="modal-close-btn">&times;</span>
-            <h2 class="text-2xl font-semibold mb-6 text-gray-800">새 만화 제출</h2>
-            
-            <div class="space-y-4">
-                <div>
-                    <label for="comic-nickname" class="block text-sm font-medium text-gray-700">닉네임</label>
-                    <input type="text" id="comic-nickname" name="comic-nickname"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                           placeholder="비워두면 고유 ID로 표시됩니다.">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">이미지 업로드</label>
-                    <!-- (index (19).html 참고) -->
-                    <div id="image-upload-area" class="mt-1">
-                        <!-- 미리보기 (기본 숨김) -->
-                        <img id="image-preview" src="" alt="미리보기" class="hidden">
-                        <!-- 플레이스홀더 -->
-                        <div id="upload-area-placeholder" class="flex flex-col items-center justify-center text-gray-500">
-                             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                            </svg>
-                            <p class="mt-2 font-medium">클릭, 붙여넣기(Ctrl+V), 또는 드래그 앤 드롭</p>
-                            <p class="text-xs text-gray-400 mt-1">파일 업로드 또는 이미지 URL 붙여넣기</p>
-                        </div>
-                    </div>
-                </div>
-
-                <button id="submit-comic-btn"
-                        class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300
-                               disabled:bg-gray-400 disabled:cursor-not-allowed">
-                    제출하기
-                </button>
-            </div>
-        </div>
-    </div>
+      // 이미지 클릭 이벤트 (확대)
+      comicGrid.querySelectorAll('.content[data-action="view"]').forEach(el => {
+        el.onclick = (e) => {
+          e.stopPropagation();
+          const img = el.querySelector('img');
+          if (img && img.src) {
+            openImageModal(img.src);
+          }
+        };
+      });
+    };
 
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        // Firebase v11.6.1
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            signInAnonymously, 
-            onAuthStateChanged,
-            signInWithCustomToken
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            collection, 
-            doc, 
-            addDoc, 
-            onSnapshot, 
-            serverTimestamp,
-            runTransaction,
-            setLogLevel
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    (function init(){ 
+      attachEventListeners(); 
+      // 달력 렌더링 제거
+    })();
 
-        // --- 전역 변수 ---
-        let db, auth, app;
-        let currentUserId = null; // Firebase UID
-        let currentUserAnonymousId = "로그인 중..."; // "익명-XXXXXX"
-        let comicsCollectionRef;
-        let uploadedImageUrl = null;    // 업로드/붙여넣기된 이미지의 최종 URL
-        let imageFileToUpload = null;   // 업로드할 파일 객체 (Blob/File)
+    // ===== D&D/붙여넣기/클릭-자동붙여넣기 =====
+    function isImageUrl(u){
+      try{ new URL(u); }catch{ return false; }
+      return /\.(jpe?g|png|gif|webp|svg|avif)(\?|$)/i.test(u);
+    }
+    
+    // (동영상, 링크, 인스타그램 관련 함수 제거 - 네컷만화(이미지)에만 집중)
 
-        // --- 상수 ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-comic-app';
-        // (index (19).html 에서 가져온 ImgBB API 키)
-        const IMGBB_API_KEY = "f64175972f4e4178332db9ae8559969b";
+    // 드래그앤드롭 핸들러
+    dragArea.addEventListener('dragover',(e)=>{ e.preventDefault(); dragArea.classList.add('active'); });
+    dragArea.addEventListener('dragleave',()=>{ dragArea.classList.remove('active'); });
+    dragArea.addEventListener('drop',async(e)=>{
+      e.preventDefault(); dragArea.classList.remove('active');
+      const dt = e.dataTransfer;
+      
+      // 1. 파일 드롭 처리 (이미지 파일만)
+      const files=[...(dt.files||[])].filter(f=>f.type.startsWith('image/'));
+      if(files.length > 0){
+        if(window.addImage) {
+          await window.addImage(files[0]); // 첫 번째 이미지만 업로드
+          showFeedbackMessage('만화가 업로드되었습니다!');
+          return;
+        }
+      }
+
+      // 2. HTML/텍스트에서 이미지 URL 추출 시도
+      const html = dt.getData('text/html');
+      const plainText = dt.getData('text/plain');
+      let url = null;
+
+      if(html){
+        const doc=new DOMParser().parseFromString(html,'text/html');
+        const img=doc.querySelector('img');
+        if(img?.src){ url=img.src; }
+      }
+      if(!url){ const u=dt.getData('text/uri-list')||dt.getData('URL')||plainText; if(u) { url=u; } }
+
+      // 3. 이미지 URL인 경우 처리
+      if(url && isImageUrl(url)){
+        // 원격 이미지 URL을 ImgBB로 프록시 업로드 (CORS 등 이슈 방지)
+        if(window.addImage){ 
+          await window.addImage(url); 
+          showFeedbackMessage('만화가 업로드되었습니다!'); 
+        } 
+        return; 
+      }
+
+      showAlert('유효한 이미지 파일을 찾지 못했습니다.');
+    });
+
+    // 클릭: 클립보드 접근 및 자동 붙여넣기 시도
+    dragArea.addEventListener('click', async ()=>{
+      if (!window.ensureLogin || !window.ensureLogin()) return;
+      try{
+        let processed = false;
         
-        // Firebase 설정 (Canvas 환경에서 제공)
-        let firebaseConfig;
-        try {
-            firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-            if (Object.keys(firebaseConfig).length === 0) {
-                throw new Error("Firebase config is empty.");
-            }
-        } catch (e) {
-            console.error("Firebase config parsing error:", e);
-            showMessage("앱 설정을 불러오는 데 실패했습니다.", "error");
-            // return; // 앱 중단 대신 오류 메시지만 표시
-        }
-
-        // --- HTML 요소 ---
-        const userIdDisplay = document.getElementById('user-id-display');
-        const gallery = document.getElementById('comic-gallery');
-        const galleryLoading = document.getElementById('gallery-loading');
-        const messageBox = document.getElementById('message-box');
-        
-        // 모달 요소
-        const showUploadModalBtn = document.getElementById('show-upload-modal-btn');
-        const uploadModal = document.getElementById('upload-modal');
-        const closeModalBtn = document.getElementById('close-modal-btn');
-        const comicNicknameInput = document.getElementById('comic-nickname');
-        const imageUploadArea = document.getElementById('image-upload-area');
-        const imagePreview = document.getElementById('image-preview');
-        const uploadAreaPlaceholder = document.getElementById('upload-area-placeholder');
-        const submitComicBtn = document.getElementById('submit-comic-btn');
-        
-        // 파일 입력을 위한 숨겨진 요소
-        const hiddenFileInput = document.createElement('input');
-        hiddenFileInput.type = 'file';
-        hiddenFileInput.accept = 'image/*';
-        hiddenFileInput.style.display = 'none';
-        document.body.appendChild(hiddenFileInput);
-
-
-        // --- 함수 ---
-
-        /**
-         * (index (19).html 참고)
-         * 이미지 URL인지 간단히 확인합니다.
-         * @param {string} u - 확인할 URL
-         * @returns {boolean}
-         */
-        function isImageUrl(u) {
-            if (!u) return false;
-            try { new URL(u); } catch { return false; }
-            return /\.(jpe?g|png|gif|webp|svg|avif)(\?|$)/i.test(u);
-        }
-
-        /**
-         * 사용자에게 메시지를 보여줍니다.
-         * @param {string} text - 표시할 메시지
-         * @param {'success' | 'error' | 'info'} type - 메시지 유형
-         */
-        function showMessage(text, type = 'info') {
-            messageBox.textContent = text;
-            messageBox.classList.remove('bg-green-500', 'bg-red-500', 'bg-blue-500', 'message-hide');
-            
-            if (type === 'success') {
-                messageBox.classList.add('bg-green-500', 'text-white');
-            } else if (type === 'error') {
-                messageBox.classList.add('bg-red-500', 'text-white');
-            } else {
-                messageBox.classList.add('bg-blue-500', 'text-white');
-            }
-            
-            messageBox.classList.add('message-show');
-
-            setTimeout(() => {
-                messageBox.classList.remove('message-show');
-                messageBox.classList.add('message-hide');
-            }, 3000);
-        }
-
-        /**
-         * 갤러리에 만화 카드를 렌더링합니다. (닉네임만 표시하도록 수정)
-         * @param {Array} comics - 표시할 만화 문서 배열
-         */
-        function renderGallery(comics) {
-            gallery.innerHTML = ''; // 갤러리 비우기
-            
-            if (comics.length === 0) {
-                galleryLoading.textContent = "아직 등록된 만화가 없습니다. 첫 만화를 올려보세요!";
-                return;
-            }
-            
-            galleryLoading.style.display = 'none'; // 로딩 메시지 숨기기
-
-            // '따봉' (likes)이 많은 순서대로 정렬
-            comics.sort((a, b) => b.data().likes - a.data().likes);
-
-            comics.forEach(docSnap => {
-                const comicId = docSnap.id;
-                const data = docSnap.data();
-                
-                // 현재 사용자가 이 만화를 좋아하는지 확인
-                const userHasLiked = data.likedBy?.includes(currentUserId) ?? false;
-
-                const card = document.createElement('div');
-                card.className = "bg-white rounded-lg shadow-md overflow-hidden flex flex-col";
-                
-                // (수정) 닉네임(title)만 표시
-                card.innerHTML = `
-                    <div class="p-4">
-                        <h3 class="text-xl font-bold text-gray-800 truncate" title="${escapeHTML(data.title)}">${escapeHTML(data.title)}</h3>
-                    </div>
-                    <div class="h-80 bg-gray-200 flex items-center justify-center">
-                        <img src="${escapeHTML(data.imageUrl)}" 
-                             alt="${escapeHTML(data.title)}" 
-                             class="w-full h-full object-contain"
-                             onerror="this.src='https://placehold.co/400x400/eeeeee/aaaaaa?text=Image+Error'; this.classList.add('object-scale-down');">
-                    </div>
-                    <div class="p-4 flex justify-between items-center mt-auto">
-                        <span class="text-lg font-semibold text-blue-600">
-                            따봉 ${data.likes}개
-                        </span>
-                        <button 
-                            data-id="${comicId}"
-                            class="like-button px-4 py-2 rounded-md font-semibold transition duration-300
-                                   ${userHasLiked 
-                                       ? 'bg-blue-600 text-white' 
-                                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}">
-                            ${userHasLiked ? '👍 따봉 취소' : '👍 따봉!'}
-                        </button>
-                    </div>
-                `;
-                
-                gallery.appendChild(card);
-            });
-        }
-        
-        /**
-         * HTML 문자열을 이스케이프합니다 (XSS 방지).
-         * @param {string} str - 이스케이프할 문자열
-         * @returns {string} 이스케이프된 문자열
-         */
-        function escapeHTML(str) {
-            if (typeof str !== 'string') return '';
-            return str.replace(/[&<>"']/g, function(m) {
-                return {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#39;'
-                }[m];
-            });
-        }
-
-        /**
-         * 모달 폼 초기화
-         */
-        function resetUploadModal() {
-            comicNicknameInput.value = '';
-            imagePreview.src = '';
-            imagePreview.classList.add('hidden');
-            uploadAreaPlaceholder.classList.remove('hidden');
-            uploadedImageUrl = null;
-            imageFileToUpload = null;
-            submitComicBtn.disabled = false;
-            submitComicBtn.textContent = "제출하기";
-        }
-
-        /**
-         * 업로드 모달 열기
-         */
-        function openUploadModal() {
-            if (!currentUserId) {
-                showMessage("로그인이 필요합니다.", "error");
-                return;
-            }
-            resetUploadModal();
-            comicNicknameInput.placeholder = currentUserAnonymousId; // 기본 닉네임 안내
-            uploadModal.style.display = 'flex';
-        }
-
-        /**
-         * 업로드 모달 닫기
-         */
-        function closeUploadModal() {
-            uploadModal.style.display = 'none';
-        }
-
-        /**
-         * (index (19).html 참고)
-         * 파일을 ImgBB에 업로드합니다.
-         * @param {File} file - 업로드할 파일 객체
-         * @returns {Promise<string>} - 업로드된 이미지 URL
-         */
-        async function uploadToImgbb(file) {
-            const formData = new FormData();
-            formData.append('image', file);
-            
-            try {
-                const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const json = await response.json();
-                
-                if (!json.success) {
-                    throw new Error(json?.error?.message || 'imgbb 업로드 실패');
+        // 1. 클립보드 이미지 처리
+        if(navigator.clipboard?.read){
+          const items=await navigator.clipboard.read();
+          for(const it of items){
+            for(const type of it.types){
+              if(type.startsWith('image/')){
+                const blob=await it.getType(type);
+                if(window.addImage){ 
+                  await window.addImage(new File([blob],'clipboard-image',{type:blob.type})); 
+                  showFeedbackMessage('클립보드 이미지 업로드됨'); 
+                  processed=true; 
+                  return; 
                 }
-                
-                return json.data?.url; // 이미지 URL 반환
-
-            } catch (error) {
-                console.error("ImgBB upload failed:", error);
-                throw error; // 에러를 상위로 전파
+              }
             }
+          }
         }
         
-        /**
-         * 이미지 미리보기를 표시합니다.
-         * @param {string} src - 이미지 소스 (URL 또는 데이터 URL)
-         */
-        function showPreview(src) {
-            imagePreview.src = src;
-            imagePreview.classList.remove('hidden');
-            uploadAreaPlaceholder.classList.add('hidden');
-        }
-
-        /**
-         * 만화 등록 폼 제출 처리 (모달)
-         */
-        async function handleSubmitComic() {
-            if (!currentUserId) {
-                showMessage("로그인이 필요합니다.", "error");
-                return;
-            }
-
-            // 1. 닉네임 결정
-            const nickname = comicNicknameInput.value.trim() || currentUserAnonymousId;
-            
-            // 2. 이미지 URL 확인
-            let finalImageUrl = uploadedImageUrl; // URL 붙여넣기의 경우
-            
-            submitComicBtn.disabled = true;
-
-            try {
-                // 파일 업로드가 필요한 경우 (붙여넣기 또는 파일 선택)
-                if (imageFileToUpload && !finalImageUrl) {
-                    submitComicBtn.textContent = "이미지 업로드 중...";
-                    finalImageUrl = await uploadToImgbb(imageFileToUpload);
-                }
-
-                if (!finalImageUrl) {
-                    showMessage("이미지가 필요합니다. 파일을 선택하거나 URL을 붙여넣어 주세요.", "error");
-                    submitComicBtn.disabled = false;
-                    return;
-                }
-
-                submitComicBtn.textContent = "데이터베이스에 저장 중...";
-
-                // 3. Firestore에 저장
-                const newComic = {
-                    title: nickname,        // 닉네임을 제목으로 사용
-                    creatorId: nickname,    // 닉네임을 생성자로 사용
-                    imageUrl: finalImageUrl,
-                    createdAt: serverTimestamp(),
-                    likes: 0,
-                    likedBy: [] // '좋아요' 누른 사용자 ID 목록
-                };
-                
-                await addDoc(comicsCollectionRef, newComic);
-                
-                showMessage("만화가 성공적으로 등록되었습니다!", "success");
-                closeUploadModal(); // 모달 닫기 및 초기화
-
-            } catch (error) {
-                console.error("Error adding document: ", error);
-                showMessage("만화 등록에 실패했습니다. " + error.message, "error");
-            } finally {
-                submitComicBtn.disabled = false;
-                submitComicBtn.textContent = "제출하기";
-            }
+        // 2. 클립보드 텍스트 (이미지 URL) 처리
+        const t = await navigator.clipboard.readText();
+        if(t && isImageUrl(t)){ 
+            if(window.addImage){ 
+              await window.addImage(t); 
+              showFeedbackMessage('클립보드 이미지 URL 업로드됨'); 
+              processed=true; 
+              return; 
+            } 
         }
         
-        // --- 업로드 영역 이벤트 핸들러 (index (19).html 참고) ---
+        if(!processed) showAlert('클립보드에서 유효한 이미지를 읽지 못했습니다.');
+      }catch(e){ console.error(e); showAlert('클립보드 권한을 허용하세요.'); }
+    });
 
-        // (클릭)
-        function handleImageUploadAreaClick() {
-            hiddenFileInput.click();
+    // 붙여넣기 핸들러
+    dragArea.addEventListener('paste', async (e)=>{
+      if (!window.ensureLogin || !window.ensureLogin()) return;
+      e.preventDefault();
+      const items=[...(e.clipboardData||e.originalEvent?.clipboardData)?.items||[]];
+
+      for(const item of items){
+        // 1. 이미지 파일 처리
+        if(item.kind==='file' && item.type.startsWith('image/')){
+          const file=item.getAsFile(); 
+          if(file && window.addImage){ 
+            await window.addImage(file); 
+            showFeedbackMessage('이미지 업로드됨'); 
+            return; 
+          }
         }
+        // 2. 텍스트 (이미지 URL) 처리
+        if(item.kind==='string'){
+          const txt=await new Promise(r=>item.getAsString(r));
+          if(txt && isImageUrl(txt)){
+             if(window.addImage){ 
+                await window.addImage(txt); 
+                showFeedbackMessage('URL 업로드됨'); 
+                return; 
+             } 
+          }
+        }
+      }
+      
+      showAlert('붙여넣기한 항목에 유효한 이미지가 없습니다.');
+    });
+  </script>
+
+  <!-- ===== Firebase & 동기화 ===== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    // 필요한 Firestore 모듈 추가
+    import { 
+      getFirestore, doc, deleteDoc, collection, onSnapshot, 
+      addDoc, updateDoc, serverTimestamp, query, orderBy, 
+      limit, deleteField 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Firebase Config (원래 파일에서 가져옴)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCiwzde40jsz17CEz-rrMmmBrn-S6brdlE",
+      authDomain: "comicschedule-dfec7.firebaseapp.com",
+      projectId: "comicschedule-dfec7",
+      storageBucket: "comicschedule-dfec7.appspot.com",
+      messagingSenderId: "1084611276816",
+      appId: "1:1084611276816:web:aca83237bafa971ed1fa95",
+      measurementId: "G-ZNZZQRJZF9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    // auth 객체를 window에 할당하여 renderComics에서 사용자 ID를 참조할 수 있도록 함
+    window.auth = auth;
+
+    const signInBtn=document.getElementById('signInBtn');
+    const signOutBtn=document.getElementById('signOutBtn');
+    const userInfoEl=document.getElementById('userInfo');
+    const loadingOverlay=document.getElementById('loading-overlay');
+    const provider = new GoogleAuthProvider();
+
+    async function doSignIn(){
+      try{ await signInWithPopup(auth,provider); }
+      catch(e){
+        if(e.code==='auth/popup-blocked'||e.code==='auth/unauthorized-domain'){ await signInWithRedirect(auth,provider); }
+        else{ document.getElementById('modal-message').textContent='로그인 오류: '+(e.message||e.code); document.getElementById('alert-modal').classList.remove('hidden'); }
+      }
+    }
+    getRedirectResult(auth).catch(()=>{});
+
+    signInBtn.onclick=()=>doSignIn();
+    signOutBtn.onclick=()=>signOut(auth);
+
+    // 공용 'comics' 컬렉션 참조
+    window.cloudRefs = () => {
+      // 중요: 'comics' 컬렉션은 모든 사용자가 읽을 수 있어야 합니다.
+      // Firebase > Firestore > Rules에서 다음 규칙을 추가해야 합니다:
+      // rules_version = '2';
+      // service cloud.firestore {
+      //   match /databases/{database}/documents {
+      //     // ... (기존 users 규칙)
+      //
+      //     // 'comics' 컬렉션 규칙
+      //     match /comics/{comicId} {
+      //       allow read: if true;
+      //       allow create: if request.auth != null;
+      //       allow update, delete: if request.auth.uid == resource.data.uploaderId || request.auth != null; // '좋아요'는 누구나, 삭제는 본인만
+      //     }
+      //   }
+      // }
+      // (update 규칙을 '좋아요'에 맞게 더 세분화할 수 있습니다)
+      return {
+        comicsCol: collection(db, "comics"),
+      };
+    };
+
+    window.ensureLogin=()=>{
+      if(!window.isAuthReady){ showAlert('데이터 로딩 중입니다.'); return false; }
+      if(!auth.currentUser){ showAlert('로그인 후 이용해 주세요.'); return false; }
+      return true;
+    };
+
+    // (달력/메모 관련 저장 함수 제거)
+
+    // ===== 네컷만화 업로드 및 관리 =====
+    
+    // imgbb 업로드(붙여넣기/클립보드/드래그 이미지 전용)
+    window.addImage = async (fileOrUrl)=>{
+      if(!ensureLogin()) return;
+      try{
+        const { comicsCol } = cloudRefs();
         
-        // (파일 선택)
-        function handleFileSelected(event) {
-            const file = event.target.files?.[0];
-            if (file) {
-                imageFileToUpload = file;
-                uploadedImageUrl = null; // URL 붙여넣기 값 초기화
-                
-                // FileReader로 미리보기 생성
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    showPreview(e.target.result);
-                };
-                reader.readAsDataURL(file);
-            }
-            // 입력 값 초기화 (동일한 파일 다시 선택 가능하도록)
-            event.target.value = null;
-        }
-
-        // (붙여넣기)
-        async function handlePaste(e) {
-            e.preventDefault();
-            const items = [...(e.clipboardData || e.originalEvent?.clipboardData)?.items || []];
-            
-            for (const item of items) {
-                // 1. 이미지 파일(blob) 처리
-                if (item.kind === 'file' && item.type.startsWith('image/')) {
-                    const blob = item.getAsFile();
-                    if (blob) {
-                        imageFileToUpload = blob;
-                        uploadedImageUrl = null;
-                        
-                        const reader = new FileReader();
-                        reader.onload = (e_reader) => {
-                            showPreview(e_reader.target.result);
-                        };
-                        reader.readAsDataURL(blob);
-                        showMessage("이미지 파일이 붙여넣기 되었습니다.", "info");
-                        return; // 첫 번째 이미지만 처리
-                    }
-                }
-                
-                // 2. 텍스트(URL) 처리
-                if (item.kind === 'string' && item.type === 'text/plain') {
-                    const url = await new Promise(r => item.getAsString(r));
-                    if (isImageUrl(url)) {
-                        uploadedImageUrl = url;
-                        imageFileToUpload = null;
-                        showPreview(url); // URL로 바로 미리보기
-                        showMessage("이미지 URL이 붙여넣기 되었습니다.", "info");
-                        return; // 첫 번째 URL만 처리
-                    }
-                }
-            }
-            showMessage("붙여넣기한 항목이 이미지 파일이나 URL이 아닙니다.", "error");
-        }
-
-        // (드래그)
-        function handleDragOver(e) {
-            e.preventDefault();
-            imageUploadArea.classList.add('drag-over');
-        }
-        function handleDragLeave(e) {
-            e.preventDefault();
-            imageUploadArea.classList.remove('drag-over');
-        }
-        function handleDrop(e) {
-            e.preventDefault();
-            imageUploadArea.classList.remove('drag-over');
-            
-            const files = e.dataTransfer.files;
-            
-            // 1. 파일 드롭 처리
-            if (files.length > 0 && files[0].type.startsWith('image/')) {
-                const file = files[0];
-                imageFileToUpload = file;
-                uploadedImageUrl = null;
-                
-                const reader = new FileReader();
-                reader.onload = (e_reader) => {
-                    showPreview(e_reader.target.result);
-                };
-                reader.readAsDataURL(file);
-                showMessage("이미지 파일이 드롭되었습니다.", "info");
-                return;
-            }
-            
-            // 2. URL 드롭 처리
-            const url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
-            if (isImageUrl(url)) {
-                uploadedImageUrl = url;
-                imageFileToUpload = null;
-                showPreview(url);
-                showMessage("이미지 URL이 드롭되었습니다.", "info");
-                return;
-            }
-            
-            showMessage("드롭한 항목이 이미지 파일이나 URL이 아닙니다.", "error");
-        }
-
-
-        /**
-         * '따봉' (좋아요) 버튼 클릭 처리
-         */
-        async function handleLikeClick(e) {
-            if (!e.target.classList.contains('like-button')) {
-                return;
-            }
-// ... (기존 코드와 동일) ...
-            if (!currentUserId) {
-                showMessage("좋아요를 누르려면 로그인이 필요합니다.", "error");
-                return;
-            }
-
-            const button = e.target;
-            const comicId = button.dataset.id;
-            
-            button.disabled = true; // 중복 클릭 방지
-
-            const comicRef = doc(db, `/artifacts/${appId}/public/data/comics`, comicId);
-
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const comicDoc = await transaction.get(comicRef);
-                    if (!comicDoc.exists()) {
-                        throw new Error("만화 문서를 찾을 수 없습니다.");
-                    }
-
-                    const data = comicDoc.data();
-                    const likedBy = data.likedBy || [];
-                    let newLikes = data.likes || 0;
-                    let newLikedBy = [...likedBy];
-
-                    const userIndex = likedBy.indexOf(currentUserId);
-
-                    if (userIndex === -1) {
-                        // 사용자가 아직 '좋아요'를 누르지 않음 -> '좋아요' 추가
-                        newLikes++;
-                        newLikedBy.push(currentUserId);
-                    } else {
-                        // 사용자가 이미 '좋아요'를 누름 -> '좋아요' 취소 (따봉 취소)
-                        newLikes = Math.max(0, newLikes - 1); // 0 미만으로 내려가지 않도록
-                        newLikedBy.splice(userIndex, 1);
-                    }
-
-                    transaction.update(comicRef, {
-                        likes: newLikes,
-                        likedBy: newLikedBy
-                    });
-                });
-                
-            } catch (error) {
-                console.error("Transaction failed: ", error);
-                showMessage("따봉 처리에 실패했습니다. " + error.message, "error");
-            } finally {
-                 setTimeout(() => {
-                    const currentButton = gallery.querySelector(`button[data-id="${comicId}"]`);
-                    if (currentButton) {
-                        currentButton.disabled = false;
-                    }
-                 }, 500); 
-            }
-        }
-
-        /**
-         * Firebase 초기화 및 인증
-         */
-        async function initializeFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                // Firestore 로그 레벨 설정
-                setLogLevel('Debug');
-
-                // 컬렉션 참조 설정 (공용 데이터)
-                comicsCollectionRef = collection(db, `/artifacts/${appId}/public/data/comics`);
-
-                // 인증 상태 리스너
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        // 사용자가 이미 로그인되어 있음
-                        currentUserId = user.uid;
-                        currentUserAnonymousId = "익명-" + currentUserId.substring(0, 6);
-                        userIdDisplay.textContent = currentUserAnonymousId;
-                        
-                        // 실시간 만화 데이터 로드
-                        loadComics();
-                        
-                    } else {
-                        // 사용자가 로그인되어 있지 않음
-                        userIdDisplay.textContent = "로그인 시도 중...";
-                        try {
-                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                                await signInWithCustomToken(auth, __initial_auth_token);
-                            } else {
-                                await signInAnonymously(auth);
-                            }
-                            // onAuthStateChanged가 다시 트리거됨
-                        } catch (error) {
-                            console.error("Anonymous sign-in failed: ", error);
-                            userIdDisplay.textContent = "로그인 실패";
-                            showMessage("인증에 실패했습니다: " + error.message, "error");
-                        }
-                    }
-                });
-
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                showMessage("앱 초기화에 실패했습니다: " + error.message, "error");
-                galleryLoading.textContent = "앱 초기화 실패.";
-            }
-        }
+        const form = new FormData();
+        // fileOrUrl이 string (URL)인 경우, 프록시 업로드를 위해 'image' 파라미터에 URL을 할당
+        form.append('image', fileOrUrl); 
         
-        /**
-         * Firestore에서 만화 목록을 실시간으로 불러옵니다.
-         */
-        function loadComics() {
-            if (!comicsCollectionRef) return;
-            
-            // onSnapshot을 사용하여 실시간 업데이트 수신
-            onSnapshot(comicsCollectionRef, (querySnapshot) => {
-                const comics = querySnapshot.docs;
-                renderGallery(comics);
-            }, (error) => {
-                console.error("Error fetching comics: ", error);
-                showMessage("만화를 불러오는 데 실패했습니다.", "error");
-                galleryLoading.textContent = "데이터 로드 실패.";
-            });
-        }
+        showFeedbackMessage('이미지 업로드 중...');
 
-        // --- 이벤트 리스너 ---
-        gallery.addEventListener('click', handleLikeClick);
+        const res=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`,{method:'POST',body:form});
+        const json=await res.json();
+        if(!json.success) throw new Error(json?.error?.message || 'imgbb 업로드 실패');
         
-        // 모달 이벤트
-        showUploadModalBtn.addEventListener('click', openUploadModal);
-        closeModalBtn.addEventListener('click', closeUploadModal);
-        uploadModal.addEventListener('click', (e) => {
-            if (e.target === uploadModal) { // 모달 배경 클릭 시
-                closeUploadModal();
-            }
+        const link=json.data?.url || json.data?.display_url;
+        const deleteUrl=json.data?.delete_url || null;
+
+        // Firestore에 네컷만화 정보 저장
+        await addDoc(comicsCol, {
+          imageUrl: link,
+          imgbb_delete_url: deleteUrl, // 나중에 삭제할 수 있도록 삭제 URL 저장
+          uploaderId: auth.currentUser.uid,
+          uploaderName: auth.currentUser.displayName || '익명',
+          timestamp: serverTimestamp(), // 정렬을 위한 서버 시간
+          likes: {} // '좋아요'를 위한 빈 맵
         });
-        submitComicBtn.addEventListener('click', handleSubmitComic);
 
-        // 업로드 영역 이벤트
-        imageUploadArea.addEventListener('click', handleImageUploadAreaClick);
-        hiddenFileInput.addEventListener('change', handleFileSelected);
-        imageUploadArea.addEventListener('paste', handlePaste);
-        imageUploadArea.addEventListener('dragover', handleDragOver);
-        imageUploadArea.addEventListener('dragleave', handleDragLeave);
-        imageUploadArea.addEventListener('drop', handleDrop);
+        showFeedbackMessage('만화가 등록되었습니다!');
 
+      }catch(err){
+        showAlert('이미지 추가 실패: '+(err.message||'오류'));
+      }
+    };
 
-        // --- 앱 시작 ---
-        initializeFirebase();
+    // 네컷만화 삭제
+    window.deleteComic = async (id)=>{
+      if(!ensureLogin()) return;
+      try{
+        // window.comics는 onSnapshot을 통해 실시간으로 업데이트됨
+        const comic = (window.comics||[]).find(d=>d.id===id); 
+        if(!comic) throw new Error('만화 항목을 찾을 수 없습니다.');
+        
+        // 본인만 삭제 가능
+        if(comic.uploaderId !== auth.currentUser.uid) {
+          showAlert('자신이 올린 만화만 삭제할 수 있습니다.');
+          return;
+        }
 
-    </script>
+        if (!confirm('정말로 이 만화를 삭제하시겠습니까?')) return;
+
+        const { comicsCol } = cloudRefs();
+        
+        // (선택사항) ImgBB 이미지 삭제 시도
+        if(comic.imgbb_delete_url){ 
+          try{ await fetch(comic.imgbb_delete_url, {method:'GET'}); }
+          catch(_){ /* imgbb 삭제 오류는 무시 */ } 
+        }
+        
+        // Firestore 문서 삭제
+        await deleteDoc(doc(comicsCol, id));
+        showFeedbackMessage('만화가 삭제되었습니다.');
+
+      }catch(e){
+        showAlert('만화 삭제 중 오류: '+(e?.message||'unknown'));
+      }
+    };
+
+    // '따봉' (좋아요) 토글 기능
+    window.toggleLike = async (id) => {
+      if (!ensureLogin()) return;
+
+      const userId = auth.currentUser.uid;
+      const comicRef = doc(db, 'comics', id);
+      
+      // onSnapshot이 실시간으로 업데이트하므로, 로컬 데이터를 참조하여 현재 상태 확인
+      const comic = window.comics.find(c => c.id === id);
+      if (!comic) return;
+
+      const userHasLiked = (comic.likes || {})[userId] === true;
+      
+      try {
+        // Dot notation을 사용하여 맵의 특정 필드만 원자적으로 업데이트/삭제
+        if (userHasLiked) {
+          // 이미 좋아한 경우: '좋아요' 취소 (필드 삭제)
+          await updateDoc(comicRef, {
+            [`likes.${userId}`]: deleteField()
+          });
+        } else {
+          // 좋아하지 않은 경우: '좋아요' 추가
+          await updateDoc(comicRef, {
+            [`likes.${userId}`]: true
+          });
+        }
+      } catch (e) {
+        console.error("좋아요 업데이트 오류:", e);
+        showAlert("좋아요 상태를 업데이트하는 중 오류가 발생했습니다.");
+      }
+    };
+
+    // ===== 실시간 동기화 =====
+    window.__unsubs=[];
+    async function setupRealtimeSync(){
+      // 로그인 시 공용 'comics' 컬렉션을 구독
+      const { comicsCol } = cloudRefs();
+      
+      window.__unsubs.forEach(fn=>{ try{ fn(); }catch(_){} }); 
+      window.__unsubs=[];
+
+      // 최신 100개 만화를 시간순(내림차순)으로 가져오는 쿼리
+      const q = query(comicsCol, orderBy("timestamp", "desc"), limit(100));
+
+      const unsubComics = onSnapshot(q, (snap) => { 
+          window.comics = snap.docs.map(d=>({id:d.id,...d.data()})); 
+          if(typeof renderComics === 'function') renderComics(); 
+      });
+      window.__unsubs.push(unsubComics);
+    }
+
+    onAuthStateChanged(auth, async (user)=>{
+      loadingOverlay.classList.remove('hidden'); 
+      window.isAuthReady=false;
+      
+      if(user){
+        // 로그인 성공
+        userInfoEl.textContent = `${user.displayName || '로그인됨'} (${user.email || ''})`;
+        signInBtn.classList.add('hidden');
+        signOutBtn.classList.remove('hidden');
+        // 공용 만화 갤러리 실시간 구독 시작
+        await setupRealtimeSync();
+      }else{
+        // 로그아웃
+        userInfoEl.textContent=''; 
+        signOutBtn.classList.add('hidden'); 
+        signInBtn.classList.remove('hidden');
+        
+        // 실시간 구독 해제
+        window.__unsubs.forEach(fn=>{ try{ fn(); }catch(_){} }); 
+        window.__unsubs=[];
+        
+        // 갤러리 비우기
+        window.comics=[];
+        if(typeof renderComics==='function') renderComics(); 
+      }
+      
+      loadingOverlay.classList.add('hidden'); 
+      window.isAuthReady=true;
+      
+      // (중요) 로그인/로그아웃 시 UI가 변경되어야 하므로 renderComics()를 다시 호출
+      if(typeof renderComics==='function') renderComics();
+    });
+  </script>
 </body>
 </html>
-
