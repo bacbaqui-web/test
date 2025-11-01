@@ -6,6 +6,15 @@
   <title>제2회 네컷만화대전</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght400;700&display=swap" rel="stylesheet"/>
+  <!-- 
+    [코드 분석]
+    - 스타일 코드는 기능적으로 문제가 없으며, 앱의 복잡한 UI 상태(모달, 갤러리, 버튼)를
+      잘 처리하고 있습니다.
+    - Tailwind와 커스텀 CSS를 혼합하여 사용하고 있으나, 코드 길이를 줄이기 위해
+      이것을 Tailwind 클래스로 모두 변경하는 것은 매우 큰 작업이며, 현재 디자인을
+      해칠 위험이 있습니다.
+    - 따라서 스타일은 원본을 유지하는 것이 가장 안정적입니다.
+  -->
   <style>
     body {
       font-family: 'Noto Sans KR', sans-serif;
@@ -577,12 +586,61 @@
     </div>
   </div>
 
-  <!-- ===== UI 스크립트 ===== -->
-  <script>
-    // ImgBB API Key (이미지 업로드용)
-    const IMGBB_API_KEY = "f64175972f4e4178332db9ae8559969b";
-    const ADMIN_PASSWORD = "1234"; // 관리자 비밀번호
+  
+  <!-- 
+    ===== 스크립트 영역 =====
+    - 기존의 2개 스크립트 블록을 1개로 통합했습니다. (UI 로직 + Firebase 로직)
+    - 배포에 필요한 모든 설정 값을 이 스크립트 최상단으로 이동시켰습니다.
+    - Canvas/웹 하이브리드 로직을 제거하고, 웹 배포 전용으로 인증 로직을 단순화했습니다.
+  -->
+  <script type="module">
+    // Firebase SDK import
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInAnonymously, 
+      onAuthStateChanged,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, doc, deleteDoc, collection, onSnapshot, 
+      addDoc, updateDoc, serverTimestamp, query, orderBy, 
+      limit, deleteField, setDoc
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+    // ========================================
+    // ===== [!] 배포 전 필수 설정 값 =====
+    // ========================================
+    
+    // 1. 본인의 Firebase 프로젝트 설정으로 교체하세요.
+    // (Firebase 콘솔 > 프로젝트 설정 > 일반)
+    const YOUR_FIREBASE_CONFIG = {
+      apiKey: "YOUR_API_KEY", // "AIzaSyBqtqjmEIPydo7ibbGePf_oEb0GXVcZI6E"
+      authDomain: "YOUR_AUTH_DOMAIN", // "ne-cut-battle.firebaseapp.com"
+      projectId: "YOUR_PROJECT_ID", // "ne-cut-battle"
+      storageBucket: "YOUR_STORAGE_BUCKET", // "ne-cut-battle.firebasestorage.app"
+      messagingSenderId: "YOUR_SENDER_ID", // "565872837701"
+      appId: "YOUR_WEB_APP_ID" // "1:565872837701:web:3c57c4bab8d37644018f2c"
+    };
+
+    // 2. [중요] 이 코드를 사용했던 원본 Canvas의 App ID
+    // Firestore 경로(`artifacts/{appId}/...`)가 이 ID를 기반으로 합니다.
+    // 원본 Canvas 환경에서 console.log(__app_id)로 찾아서 여기에 붙여넣으세요.
+    const CANVAS_APP_ID_FOR_FIRESTORE = "YOUR_CANVAS_APP_ID_HERE";
+
+    // 3. 본인의 ImgBB API 키로 교체하세요. (https://api.imgbb.com/)
+    // (참고: 키가 클라이언트에 노출되므로 테스트용으로만 사용하세요)
+    const IMGBB_API_KEY = "YOUR_IMGBB_API_KEY_HERE"; // "f64175972f4e4178332db9ae8559969b"
+
+    // 4. 관리자용 비밀번호
+    const ADMIN_PASSWORD = "1234"; 
+    
+    // ========================================
+    // ===== UI 스크립트 (기존 로직) =====
+    // ========================================
+    
     // 전역 상태
     window.comics = []; // 갤러리 데이터
     window.isAuthReady = false;
@@ -668,6 +726,13 @@
     const adminPreviewPasswordError = document.getElementById('adminPreviewPasswordError');
     const cancelAdminPreviewPassword = document.getElementById('cancelAdminPreviewPassword');
     const submitAdminPreviewPassword = document.getElementById('submitAdminPreviewPassword');
+
+    // (웹 배포용) 로그인 UI 요소
+    const authBar = document.getElementById('authBar');
+    const signInBtn = document.getElementById('signInBtn');
+    const signOutBtn = document.getElementById('signOutBtn');
+    const userInfoEl = document.getElementById('userInfo');
+    const loadingOverlay = document.getElementById('loading-overlay');
 
 
     // 유틸리티 함수
@@ -897,6 +962,10 @@
           adminPreviewPasswordError.textContent = '비밀번호가 틀렸습니다.';
         }
       });
+
+      // 9. (웹 배포용) 로그인/로그아웃 버튼
+      signInBtn.onclick = () => doSignIn();
+      signOutBtn.onclick = () => signOut(auth);
     };
 
     /**
@@ -1114,81 +1183,20 @@
       });
     };
 
-
-    (function init(){ 
-      attachEventListeners(); 
-    })();
-    
-  </script>
-
-  <!-- ===== Firebase & 동기화 ===== -->
-  <script type="module">
-    // Firebase SDK import
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { 
-      getAuth, 
-      signInWithCustomToken, 
-      signInAnonymously, 
-      onAuthStateChanged,
-      GoogleAuthProvider, // (웹 배포용)
-      signInWithPopup,    // (웹 배포용)
-      signOut             // (웹 배포용)
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { 
-      getFirestore, doc, deleteDoc, collection, onSnapshot, 
-      addDoc, updateDoc, serverTimestamp, query, orderBy, 
-      limit, deleteField, setDoc, getDoc
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    // --- [중요] 하이브리드 환경 설정 ---
-
-    // 1. Canvas 환경 변수 (이 환경에서만 존재)
-    const canvasFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-    const canvasAppId = typeof __app_id !== 'undefined' ? __app_id : null;
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-    // 2. 웹 배포(GitHub 등)용 대체 설정값 (사용자가 직접 제공한 값)
-    const hardcodedFirebaseConfig = {
-      apiKey: "AIzaSyBqtqjmEIPydo7ibbGePf_oEb0GXVcZI6E",
-      authDomain: "ne-cut-battle.firebaseapp.com",
-      projectId: "ne-cut-battle",
-      storageBucket: "ne-cut-battle.firebasestorage.app",
-      messagingSenderId: "565872837701",
-      appId: "1:565872837701:web:3c57c4bab8d37644018f2c",
-      measurementId: "G-EDHCL46T9M"
-    };
-
-    // 3. [!! 작업 필요 !!] 배포용 Canvas App ID
-    // Firestore 경로(`artifacts/{appId}/...`)는 Canvas의 appId를 따라야 합니다.
-    // 이 값을 Canvas 환경에서 `console.log(__app_id)`로 찾아서 붙여넣으세요.
-    const hardcodedCanvasAppId = "YOUR_CANVAS_APP_ID_HERE"; // <--- [!! 작업 필요 !!]
-
-    // 4. 최종 설정값 결정
-    // Canvas 환경이면 canvasFirebaseConfig, 아니면 hardcodedFirebaseConfig 사용
-    const firebaseConfig = canvasFirebaseConfig || hardcodedFirebaseConfig;
-    // Canvas 환경이면 canvasAppId, 아니면 hardcodedCanvasAppId 사용
-    const appId = canvasAppId || hardcodedCanvasAppId;
-
-    if (appId === "YOUR_CANVAS_APP_ID_HERE") {
-      console.error("Firebase 초기화 오류: 979라인의 'hardcodedCanvasAppId' 값을 채워야 합니다!");
-      showAlert("설정 오류: hardcodedCanvasAppId가 설정되지 않았습니다.");
-    }
+    // ========================================
+    // ===== Firebase & 동기화 (수정됨) =====
+    // ========================================
 
     // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
+    // (설정 값은 스크립트 최상단 `YOUR_FIREBASE_CONFIG` 변수 사용)
+    const app = initializeApp(YOUR_FIREBASE_CONFIG);
     const auth = getAuth(app);
     const db = getFirestore(app);
     
     window.auth = auth; // 전역 스코프에 할당
 
-    // (웹 배포용) 로그인 UI 요소
-    const authBar = document.getElementById('authBar');
-    const signInBtn = document.getElementById('signInBtn');
-    const signOutBtn = document.getElementById('signOutBtn');
-    const userInfoEl = document.getElementById('userInfo');
+    // (웹 배포용) Google 로그인
     const provider = new GoogleAuthProvider();
-
-    // (웹 배포용) Google 로그인 함수
     async function doSignIn(){
       try { 
         await signInWithPopup(auth, provider); 
@@ -1201,22 +1209,20 @@
         showAlert('로그인 오류: ' + errorMessage);
       }
     }
-    
-    // (웹 배포용) 로그인 버튼 이벤트
-    signInBtn.onclick = () => doSignIn();
-    signOutBtn.onclick = () => signOut(auth);
 
-    // 공용 데이터 참조 (appId 변수 사용)
+    // 공용 데이터 참조 (Canvas App ID 변수 사용)
     window.cloudRefs = () => {
-      if (!appId) {
-        console.error("appId가 없습니다!");
+      // 설정 값 확인
+      if (CANVAS_APP_ID_FOR_FIRESTORE === "YOUR_CANVAS_APP_ID_HERE" || !CANVAS_APP_ID_FOR_FIRESTORE) {
+        console.error("설정 오류: CANVAS_APP_ID_FOR_FIRESTORE 값을 설정해야 합니다!");
+        showAlert("설정 오류: CANVAS_APP_ID_FOR_FIRESTORE가 설정되지 않았습니다.");
         return null;
       }
       return {
         // config 컬렉션 (단일 문서 'current' 사용)
-        configDoc: doc(db, `artifacts/${appId}/public/data/config/current`),
+        configDoc: doc(db, `artifacts/${CANVAS_APP_ID_FOR_FIRESTORE}/public/data/config/current`),
         // comics 컬렉션
-        comicsCol: collection(db, `artifacts/${appId}/public/data/comics`),
+        comicsCol: collection(db, `artifacts/${CANVAS_APP_ID_FOR_FIRESTORE}/public/data/comics`),
       };
     };
 
@@ -1246,6 +1252,11 @@
      * ImgBB에 이미지 하나를 업로드하고 결과 URL (이미지/삭제)을 반환합니다.
      */
     const uploadToImgBB = async (fileOrUrl) => {
+      // 설정 값 확인
+      if (IMGBB_API_KEY === "YOUR_IMGBB_API_KEY_HERE" || !IMGBB_API_KEY) {
+         throw new Error('ImgBB API 키가 설정되지 않았습니다.');
+      }
+      
       const form = new FormData();
       form.append('image', fileOrUrl);
       
@@ -1289,14 +1300,15 @@
       showFeedbackMessage(`만화 ${filesToUpload.length}장 업로드 중...`);
 
       try {
-        const { comicsCol } = cloudRefs();
+        const refs = cloudRefs();
+        if (!refs) return; // cloudRefs에서 오류 시 중단
         
         // 모든 이미지 업로드를 병렬로 처리
         const uploadPromises = filesToUpload.map(file => uploadToImgBB(file));
         const uploadedImagesData = await Promise.all(uploadPromises);
         
         // Firestore에 네컷만화 정보 저장
-        await addDoc(comicsCol, {
+        await addDoc(refs.comicsCol, {
           images: uploadedImagesData, // [{imageUrl: "...", deleteUrl: "..."}, ...]
           uploaderId: auth.currentUser.uid,
           uploaderName: nickname, // 사용자 입력 닉네임
@@ -1330,7 +1342,8 @@
 
         if (!(await showConfirm('정말로 이 만화를 삭제하시겠습니까?'))) return;
 
-        const { comicsCol } = cloudRefs();
+        const refs = cloudRefs();
+        if (!refs) return;
         
         // (ImgBB 삭제 시도 - CORS 오류 가능성 있음)
         try {
@@ -1345,7 +1358,7 @@
         }
         
         // Firestore 문서 삭제
-        await deleteDoc(doc(comicsCol, id));
+        await deleteDoc(doc(refs.comicsCol, id));
         showFeedbackMessage('만화가 삭제되었습니다.');
 
       }catch(e){
@@ -1359,8 +1372,10 @@
       if (!ensureLogin(false)) return; 
 
       const userId = auth.currentUser.uid;
-      const comicRef = doc(db, `artifacts/${appId}/public/data/comics`, id);
+      const refs = cloudRefs();
+      if (!refs) return;
       
+      const comicRef = doc(refs.comicsCol, id);
       const comic = window.comics.find(c => c.id === id);
       if (!comic) return;
 
@@ -1382,8 +1397,10 @@
     const updateContestConfig = async (topic, status) => {
       if (!ensureLogin(true)) return; // 관리자 로그인 확인
       try {
-        const { configDoc } = cloudRefs();
-        await setDoc(configDoc, {
+        const refs = cloudRefs();
+        if (!refs) return;
+
+        await setDoc(refs.configDoc, {
           topic: topic,
           status: status,
           updatedAt: serverTimestamp()
@@ -1421,13 +1438,14 @@
     // ===== 실시간 동기화 =====
     window.__unsubs=[];
     async function setupRealtimeSync(){
-      const { comicsCol, configDoc } = cloudRefs();
+      const refs = cloudRefs();
+      if (!refs) return;
       
       window.__unsubs.forEach(fn=>{ try{ fn(); }catch(_){} }); 
       window.__unsubs=[];
 
       // 1. 대전 상태(제시어) 실시간 구독
-      const unsubConfig = onSnapshot(configDoc, (doc) => {
+      const unsubConfig = onSnapshot(refs.configDoc, (doc) => {
         const data = doc.data();
         const status = data?.status || ""; // 'uploading', 'voting' 등
         const topic = data?.topic || "";
@@ -1437,7 +1455,6 @@
         }
       }, (error) => {
         console.error("Config 구독 오류:", error);
-        // Firestore 규칙 오류 감지
         if (error.code === 'permission-denied') {
           showAlert("데이터를 읽을 수 없습니다. Firestore 보안 규칙을 확인하세요. ('config' 컬렉션에 대한 'read: true' 설정 필요)");
         }
@@ -1445,8 +1462,7 @@
       window.__unsubs.push(unsubConfig);
 
       // 2. 네컷만화 갤러리 실시간 구독
-      // (기본 최신순 정렬. '결과' 상태일 때만 renderComics에서 좋아요순 정렬)
-      const q = query(comicsCol, orderBy("timestamp", "desc"), limit(100));
+      const q = query(refs.comicsCol, orderBy("timestamp", "desc"), limit(100));
       const unsubComics = onSnapshot(q, (snap) => { 
           window.comics = snap.docs.map(d=>({id:d.id,...d.data()})); 
           if(typeof renderComics === 'function') renderComics(); 
@@ -1459,27 +1475,15 @@
       window.__unsubs.push(unsubComics);
     }
 
-    // --- 인증 상태 변경 리스너 (하이브리드) ---
+    // --- 인증 상태 변경 리스너 (웹 배포용으로 단순화) ---
     onAuthStateChanged(auth, async (user)=>{
       loadingOverlay.classList.remove('hidden'); 
       window.isAuthReady=false;
       
       let currentUser = user;
 
-      // 1. Canvas 환경: initialAuthToken으로 로그인 시도
-      if (initialAuthToken && !user) {
-        try {
-          const userCredential = await signInWithCustomToken(auth, initialAuthToken);
-          currentUser = userCredential.user;
-          console.log("Canvas: Custom token으로 로그인 성공");
-        } catch (e) {
-          console.error("Canvas: Custom token 로그인 실패", e);
-          // 실패 시 익명 로그인으로 대체
-        }
-      }
-      
-      // 2. 웹 배포 환경: 토큰 없고 유저도 없으면 익명 로그인 시도
-      if (!initialAuthToken && !user) {
+      // 1. 웹 배포 환경: 유저가 없으면 익명 로그인 시도
+      if (!user) {
         try {
           const userCredential = await signInAnonymously(auth);
           currentUser = userCredential.user;
@@ -1489,30 +1493,25 @@
         }
       }
 
-      // 3. UI 업데이트 및 실시간 구독
+      // 2. UI 업데이트 및 실시간 구독
       if(currentUser){
         // (웹 배포용) UI 업데이트
-        if (!initialAuthToken) { 
-          authBar.classList.remove('hidden'); // 웹에서는 항상 authBar 표시
-          if (currentUser.isAnonymous) {
-            userInfoEl.textContent = '익명 사용자';
-            signInBtn.classList.remove('hidden');
-            signOutBtn.classList.add('hidden');
-          } else {
-            userInfoEl.textContent = `${currentUser.displayName || '로그인됨'}`;
-            signInBtn.classList.add('hidden');
-            signOutBtn.classList.remove('hidden');
-          }
+        authBar.classList.remove('hidden'); // 웹에서는 항상 authBar 표시
+        if (currentUser.isAnonymous) {
+          userInfoEl.textContent = '익명 사용자';
+          signInBtn.classList.remove('hidden');
+          signOutBtn.classList.add('hidden');
         } else {
-          // Canvas 환경에서는 authBar 숨김
-          authBar.classList.add('hidden');
+          userInfoEl.textContent = `${currentUser.displayName || '로그인됨'}`;
+          signInBtn.classList.add('hidden');
+          signOutBtn.classList.remove('hidden');
         }
         
         // 공통: 실시간 구독 시작
         await setupRealtimeSync();
         
       } else {
-        // 로그아웃 (웹 배포 환경에서만 발생)
+        // 로그아웃 (또는 익명 로그인도 실패한 경우)
         authBar.classList.remove('hidden');
         userInfoEl.textContent=''; 
         signOutBtn.classList.add('hidden'); 
@@ -1534,7 +1533,12 @@
          handleTopicSet(window.currentContestStatus, window.currentTopic);
       }
     });
+
+    // ===== 앱 시작 =====
+    (function init(){ 
+      attachEventListeners(); 
+    })();
+
   </script>
 </body>
 </html>
-
