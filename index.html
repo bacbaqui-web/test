@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- 1. 제목 수정 -->
   <title>제2회 네컷만화대전</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght400;700&display=swap" rel="stylesheet"/>
@@ -38,14 +37,36 @@
     @media (min-width: 1280px) { #comic-grid { column-count: 5; } }
 
     .comic-card {
-      position: relative; transition: transform .2s ease-in-out; 
+      position: relative; transition: all .2s ease-in-out; 
       background: #333; border-radius: 12px; 
       overflow: hidden; margin-bottom: 1rem; 
       break-inside: avoid; width: 100%;
       display: block; cursor: pointer;
+      border: 3px solid transparent; /* 등수 테두리를 위한 공간 */
     }
-    .comic-card:hover { transform: translateY(-5px); background: #444; }
+    .comic-card:hover:not(.disabled) { transform: translateY(-5px); background: #444; }
     
+    .comic-card.disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .comic-card.disabled:hover { transform: none; background: #333; }
+
+    /* 1. 등수 표시 스타일 */
+    .comic-card.rank-1 { border-color: #FFD700; background: #4d401e; }
+    .comic-card.rank-2 { border-color: #C0C0C0; background: #474747; }
+    .comic-card.rank-3 { border-color: #CD7F32; background: #4d3a2a; }
+    
+    .rank-medal {
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      font-size: 2.5rem; /* 40px */
+      line-height: 1;
+      transform: rotate(-15deg);
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
     .comic-card .content {
       display: flex; flex-direction: column; justify-content: center;
       align-items: center; width: 100%; min-height: 120px; 
@@ -58,20 +79,16 @@
     }
     .comic-card .sub-text { font-size: 0.8rem; color: #aaa; margin-top: 4px; }
     
-    /* 2. 제시어 표시 스타일 */
-    .comic-card .topic-display {
-      font-size: 0.9rem; font-weight: 700; color: #34d399; /* emerald-400 */
-      margin-top: 8px;
-      padding: 4px 8px;
-      background-color: rgba(52, 211, 153, 0.1);
-      border: 1px solid rgba(52, 211, 153, 0.3);
-      border-radius: 6px;
-    }
-
+    /* 카드에서 제시어 표시 제거됨 */
+    
     .comic-card img { display: none; }
 
     .comic-card .info-footer { padding: 12px; background: #333; text-align: left; }
-    .comic-card .uploader-name { font-size: 0.8rem; color: #ccc; margin-bottom: 8px; font-weight: 700; }
+    /* 등수 표시 시 랭크 색상과 맞추기 */
+    .comic-card.rank-1 .info-footer { background: #4d401e; }
+    .comic-card.rank-2 .info-footer { background: #474747; }
+    .comic-card.rank-3 .info-footer { background: #4d3a2a; }
+
     .comic-card .like-section { display: flex; justify-content: space-between; align-items: center; }
 
     .like-btn {
@@ -81,8 +98,14 @@
       transition: all 0.2s ease; cursor: pointer; border: none;
     }
     .like-btn.liked { background: #2563eb; color: white; }
-    .like-btn:hover:not(.liked) { background: #666; }
+    .like-btn:hover:not(.liked):not(.disabled) { background: #666; }
     .like-count { font-size: 0.9rem; font-weight: 700; color: #ddd; }
+    
+    .like-btn.disabled {
+      background: #444; color: #888; cursor: not-allowed;
+    }
+    .like-btn.disabled:hover { background: #444; }
+
 
     #imageModal.modal {
       position: fixed; inset: 0; background: rgba(0,0,0,.7);
@@ -99,11 +122,9 @@
     
     #modalComicNickname {
       font-size: 1.5rem; font-weight: 700; color: #fff;
-      margin-bottom: 0.5rem; /* 간격 줄임 */
-      width: 100%; text-align: center;
+      margin-bottom: 0.5rem; width: 100%; text-align: center;
     }
     
-    /* 3. 모달 제시어 스타일 */
     #modalComicTopic {
       font-size: 1.1rem; font-weight: 700; color: #34d399; /* emerald-400 */
       margin-bottom: 1rem; padding-bottom: 0.5rem;
@@ -147,29 +168,39 @@
     .file-input-label:hover { background: #555; }
     #comicFilesInput { display: none; }
     
-    /* 4. 대전 시작 버튼 스타일 */
-    #startContestBtn {
-      background: #10b981; /* emerald-500 */
-      color: white;
-      font-weight: 700;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 1.1rem;
-      transition: all .2s ease;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    /* 관리자 버튼 스타일 */
+    #startContestBtn { /* 대전 시작 */
+      background: #10b981; color: white; font-weight: 700;
+      padding: 12px 24px; border-radius: 8px; font-size: 1.1rem;
+      transition: all .2s ease; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
     }
-    #startContestBtn:hover {
-      background: #059669; /* emerald-600 */
-      transform: translateY(-2px);
-    }
+    #startContestBtn:hover { background: #059669; transform: translateY(-2px); }
     
-    /* 5. 제시어 표시 영역 스타일 */
+    #endContestBtn { /* 올리기 종료 */
+      background: #ef4444; color: white; font-weight: 700;
+      padding: 10px 20px; border-radius: 8px; font-size: 1.0rem;
+      transition: all .2s ease; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+    }
+    #endContestBtn:hover { background: #dc2626; }
+    
+    #startVotingBtn { /* 투표 시작 */
+      background: #3b82f6; /* blue-500 */ color: white; font-weight: 700;
+      padding: 10px 20px; border-radius: 8px; font-size: 1.0rem;
+      transition: all .2s ease; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+    }
+    #startVotingBtn:hover { background: #2563eb; }
+    
+    #endVotingBtn { /* 2. 투표 종료 버튼 스타일 */
+      background: #8b5cf6; /* violet-500 */ color: white; font-weight: 700;
+      padding: 10px 20px; border-radius: 8px; font-size: 1.0rem;
+      transition: all .2s ease; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
+    }
+    #endVotingBtn:hover { background: #7c3aed; }
+    
+    
     #contestTopicDisplay {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #34d399; /* emerald-400 */
-      margin-top: 0.5rem;
-      padding: 8px 16px;
+      font-size: 1.25rem; font-weight: 700; color: #34d399; /* emerald-400 */
+      margin-top: 0.5rem; padding: 8px 16px;
       background-color: rgba(52, 211, 153, 0.1);
       border: 2px solid rgba(52, 211, 153, 0.3);
       border-radius: 8px;
@@ -199,12 +230,10 @@
     <span class="text-red-400">!</span>
   </h1>
   
-  <!-- 6. 제시어 표시 영역 (초기 숨김) -->
   <div id="contestTopicDisplay" class="hidden">
     오늘의 제시어: <span id="contestTopicText" class="text-white">...</span>
   </div>
   
-  <!-- 7. 대전 시작 버튼 -->
   <button id="startContestBtn" class="mt-2 mb-4">
     대전 시작하기
   </button>
@@ -213,10 +242,23 @@
   <!-- 만화 업로드 및 갤러리 섹션 -->
   <div id="comics-section" class="section-card text-left">
     
-    <!-- 8. 업로드 버튼 (초기 숨김) -->
-    <section class="text-center mb-6">
+    <!-- 관리자 버튼 래퍼 -->
+    <section class="text-center mb-6 flex justify-center items-center gap-4 flex-wrap">
       <button id="showUploadModalBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg shadow-lg transition duration-200 ease-in-out transform hover:scale-105 hidden">
         + 네컷만화 올리기
+      </button>
+      
+      <button id="endContestBtn" class="hidden">
+        올리기 종료
+      </button>
+      
+      <button id="startVotingBtn" class="hidden">
+        투표 시작
+      </button>
+      
+      <!-- 3. '투표 종료' 버튼 추가 -->
+      <button id="endVotingBtn" class="hidden">
+        투표 종료
       </button>
     </section>
     
@@ -231,12 +273,9 @@
       <button id="closeImageModalBtn" class="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full p-1 z-50">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
-      <!-- 닉네임 표시 영역 -->
       <h3 id="modalComicNickname" class="text-xl font-bold text-white text-center"></h3>
-      <!-- 9. 모달 제시어 표시 영역 -->
       <div id="modalComicTopic" class="hidden"></div>
       
-      <!-- 이미지 컨테이너 (여러 이미지 표시용) -->
       <div id="modalImageContainer"></div>
       <img id="modalImage" src="" alt="확대 이미지" class="hidden" />
     </div>
@@ -283,7 +322,7 @@
     </div>
   </div>
 
-  <!-- 10. 대전 시작 모달 (비밀번호) -->
+  <!-- 대전 시작 모달 (비밀번호) -->
   <div id="contestPasswordModal" class="fixed inset-0 bg-[#1a1a1a] bg-opacity-50 flex items-center justify-center hidden z-[1001]">
     <div class="bg-[#242424] rounded-lg p-6 shadow-xl max-w-sm mx-auto w-full">
       <h3 class="text-xl font-bold text-white text-center mb-4">대전 시작</h3>
@@ -296,7 +335,7 @@
     </div>
   </div>
   
-  <!-- 11. 대전 시작 모달 (제시어) -->
+  <!-- 대전 시작 모달 (제시어) -->
   <div id="contestTopicModal" class="fixed inset-0 bg-[#1a1a1a] bg-opacity-50 flex items-center justify-center hidden z-[1001]">
     <div class="bg-[#242424] rounded-lg p-6 shadow-xl max-w-sm mx-auto w-full">
       <h3 class="text-xl font-bold text-white text-center mb-4">제시어 설정</h3>
@@ -305,6 +344,58 @@
       <div class="mt-4 flex justify-center gap-4">
         <button id="cancelTopicBtn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">취소</button>
         <button id="submitTopicBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">설정</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- '올리기 종료' 비밀번호 모달 -->
+  <div id="contestEndPasswordModal" class="fixed inset-0 bg-[#1a1a1a] bg-opacity-50 flex items-center justify-center hidden z-[1001]">
+    <div class="bg-[#242424] rounded-lg p-6 shadow-xl max-w-sm mx-auto w-full">
+      <h3 class="text-xl font-bold text-white text-center mb-4">업로드 종료</h3>
+      <p class="text-gray-300 text-center mb-4">업로드를 종료하고<br>관리자 비밀번호를 입력하세요.</p>
+      <input type="password" id="contestEndPasswordInput" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-center" placeholder="****">
+      <div class="mt-4 flex justify-center gap-4">
+        <button id="cancelEndPasswordBtn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">취소</button>
+        <button id="submitEndPasswordBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">종료 확인</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- '투표 시작' 비밀번호 모달 -->
+  <div id="contestStartVotingPasswordModal" class="fixed inset-0 bg-[#1a1a1a] bg-opacity-50 flex items-center justify-center hidden z-[1001]">
+    <div class="bg-[#242424] rounded-lg p-6 shadow-xl max-w-sm mx-auto w-full">
+      <h3 class="text-xl font-bold text-white text-center mb-4">투표 시작</h3>
+      <p class="text-gray-300 text-center mb-4">투표를 시작하려면<br>관리자 비밀번호를 입력하세요.</p>
+      <input type="password" id="contestStartVotingPasswordInput" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-center" placeholder="****">
+      <div class="mt-4 flex justify-center gap-4">
+        <button id="cancelStartVotingPasswordBtn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">취소</button>
+        <button id="submitStartVotingPasswordBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">시작 확인</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- '관리자 미리보기' 비밀번호 모달 -->
+  <div id="contestAdminPreviewModal" class="fixed inset-0 bg-[#1a1a1a] bg-opacity-50 flex items-center justify-center hidden z-[1001]">
+    <div class="bg-[#242424] rounded-lg p-6 shadow-xl max-w-sm mx-auto w-full">
+      <h3 class="text-xl font-bold text-white text-center mb-4">관리자 미리보기</h3>
+      <p class="text-gray-300 text-center mb-4">만화를 미리보려면<br>관리자 비밀번호를 입력하세요.</p>
+      <input type="password" id="contestAdminPreviewInput" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-center" placeholder="****">
+      <div class="mt-4 flex justify-center gap-4">
+        <button id="cancelAdminPreviewBtn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">취소</button>
+        <button id="submitAdminPreviewBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">확인</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 4. '투표 종료' 비밀번호 모달 -->
+  <div id="contestEndVotingPasswordModal" class="fixed inset-0 bg-[#1a1a1a] bg-opacity-50 flex items-center justify-center hidden z-[1001]">
+    <div class="bg-[#242424] rounded-lg p-6 shadow-xl max-w-sm mx-auto w-full">
+      <h3 class="text-xl font-bold text-white text-center mb-4">투표 종료</h3>
+      <p class="text-gray-300 text-center mb-4">투표를 종료하고 결과를 집계하려면<br>관리자 비밀번호를 입력하세요.</p>
+      <input type="password" id="contestEndVotingPasswordInput" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-center" placeholder="****">
+      <div class="mt-4 flex justify-center gap-4">
+        <button id="cancelEndVotingPasswordBtn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">취소</button>
+        <button id="submitEndVotingPasswordBtn" class="px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700">결과 집계</button>
       </div>
     </div>
   </div>
@@ -326,14 +417,17 @@
     // 전역 상태
     window.comics = [];
     window.isAuthReady = false;
-    window.currentContestTopic = null; // 12. 현재 제시어 상태
+    window.currentContestTopic = null;
+    // 5. '대전 상태' (uploading | upload_ended | voting | results)
+    window.currentContestStatus = 'results'; // (초기 기본값)
+    window.comicToPreview = null; // 관리자 미리보기용 ID 저장
 
     // DOM 요소
     const comicGrid = document.getElementById('comic-grid');
     const imageModal = document.getElementById('imageModal');
     const modalImageContainer = document.getElementById('modalImageContainer');
     const modalComicNickname = document.getElementById('modalComicNickname');
-    const modalComicTopic = document.getElementById('modalComicTopic'); // 13. 모달 제시어 DOM
+    const modalComicTopic = document.getElementById('modalComicTopic');
     const closeImageModalBtn = document.getElementById('closeImageModalBtn');
     
     // 업로드 모달 DOM 요소
@@ -351,7 +445,7 @@
     const modalConfirmBtn = document.getElementById('modal-confirm-btn');
     const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
-    // 14. 대전 시작 DOM 요소
+    // '대전 시작' DOM 요소
     const startContestBtn = document.getElementById('startContestBtn');
     const contestTopicDisplay = document.getElementById('contestTopicDisplay');
     const contestTopicText = document.getElementById('contestTopicText');
@@ -363,6 +457,33 @@
     const contestTopicInput = document.getElementById('contestTopicInput');
     const cancelTopicBtn = document.getElementById('cancelTopicBtn');
     const submitTopicBtn = document.getElementById('submitTopicBtn');
+    
+    // '올리기 종료' DOM 요소
+    const endContestBtn = document.getElementById('endContestBtn');
+    const contestEndPasswordModal = document.getElementById('contestEndPasswordModal');
+    const contestEndPasswordInput = document.getElementById('contestEndPasswordInput');
+    const cancelEndPasswordBtn = document.getElementById('cancelEndPasswordBtn');
+    const submitEndPasswordBtn = document.getElementById('submitEndPasswordBtn');
+    
+    // '투표 시작' DOM 요소
+    const startVotingBtn = document.getElementById('startVotingBtn');
+    const contestStartVotingPasswordModal = document.getElementById('contestStartVotingPasswordModal');
+    const contestStartVotingPasswordInput = document.getElementById('contestStartVotingPasswordInput');
+    const cancelStartVotingPasswordBtn = document.getElementById('cancelStartVotingPasswordBtn');
+    const submitStartVotingPasswordBtn = document.getElementById('submitStartVotingPasswordBtn');
+    
+    // '관리자 미리보기' DOM 요소
+    const contestAdminPreviewModal = document.getElementById('contestAdminPreviewModal');
+    const contestAdminPreviewInput = document.getElementById('contestAdminPreviewInput');
+    const cancelAdminPreviewBtn = document.getElementById('cancelAdminPreviewBtn');
+    const submitAdminPreviewBtn = document.getElementById('submitAdminPreviewBtn');
+    
+    // 6. '투표 종료' DOM 요소
+    const endVotingBtn = document.getElementById('endVotingBtn');
+    const contestEndVotingPasswordModal = document.getElementById('contestEndVotingPasswordModal');
+    const contestEndVotingPasswordInput = document.getElementById('contestEndVotingPasswordInput');
+    const cancelEndVotingPasswordBtn = document.getElementById('cancelEndVotingPasswordBtn');
+    const submitEndVotingPasswordBtn = document.getElementById('submitEndVotingPasswordBtn');
 
 
     // 유틸리티 함수
@@ -410,7 +531,6 @@
       
       modalComicNickname.textContent = comic.uploaderName || '익명 작가';
       
-      // 15. 모달에 제시어 표시
       if (comic.contestTopic) {
         modalComicTopic.textContent = `제시어: ${comic.contestTopic}`;
         modalComicTopic.classList.remove('hidden');
@@ -466,7 +586,7 @@
       });
     };
 
-    // 16. 대전 시작 모달 함수
+    // '대전 시작' 모달 함수
     const showPasswordModal = () => {
       if (!window.ensureLogin || !window.ensureLogin()) return;
       contestPasswordInput.value = '';
@@ -493,29 +613,150 @@
         return;
       }
       
-      // DB에 제시어 저장 (Firestore 스크립트에서 정의)
       if (window.saveContestTopicToDb) {
         window.saveContestTopicToDb(topic);
       }
       
       contestTopicModal.classList.add('hidden');
-      // (표시 로직은 onSnapshot이 처리)
     };
     
-    // 17. 제시어 UI 업데이트 함수
-    const handleTopicSet = (topic) => {
+    // '올리기 종료' 모달 함수
+    const showEndPasswordModal = () => {
+      if (!window.ensureLogin || !window.ensureLogin()) return;
+      contestEndPasswordInput.value = '';
+      contestEndPasswordModal.classList.remove('hidden');
+      contestEndPasswordInput.focus();
+    };
+    
+    const checkEndContestPassword = () => {
+      const pass = contestEndPasswordInput.value;
+      if (pass === '1234') {
+        if (window.endContestUploadingPhase) {
+          window.endContestUploadingPhase();
+          contestEndPasswordModal.classList.add('hidden');
+        }
+      } else {
+        showAlert('비밀번호가 틀렸습니다.');
+      }
+    };
+    
+    // '투표 시작' 모달 함수
+    const showStartVotingPasswordModal = () => {
+      if (!window.ensureLogin || !window.ensureLogin()) return;
+      contestStartVotingPasswordInput.value = '';
+      contestStartVotingPasswordModal.classList.remove('hidden');
+      contestStartVotingPasswordInput.focus();
+    };
+    
+    const checkStartVotingPassword = () => {
+      const pass = contestStartVotingPasswordInput.value;
+      if (pass === '1234') {
+        if (window.startVotingPhase) {
+          window.startVotingPhase();
+          contestStartVotingPasswordModal.classList.add('hidden');
+        }
+      } else {
+        showAlert('비밀번호가 틀렸습니다.');
+      }
+    };
+    
+    // '관리자 미리보기' 모달 함수
+    const showAdminPreviewModal = (comicId) => {
+      if (!window.ensureLogin || !window.ensureLogin()) return;
+      window.comicToPreview = comicId; // 미리 볼 comicId 저장
+      contestAdminPreviewInput.value = '';
+      contestAdminPreviewModal.classList.remove('hidden');
+      contestAdminPreviewInput.focus();
+    };
+    
+    const checkAdminPreviewPassword = () => {
+      const pass = contestAdminPreviewInput.value;
+      if (pass === '1234') {
+        contestAdminPreviewModal.classList.add('hidden');
+        if (window.comicToPreview) {
+          const comic = window.comics.find(c => c.id === window.comicToPreview);
+          if (comic) {
+            openComicViewerModal(comic);
+          }
+          window.comicToPreview = null; // ID 초기화
+        }
+      } else {
+        showAlert('비밀번호가 틀렸습니다.');
+      }
+    };
+    
+    // 7. '투표 종료' 모달 함수
+    const showEndVotingPasswordModal = () => {
+      if (!window.ensureLogin || !window.ensureLogin()) return;
+      contestEndVotingPasswordInput.value = '';
+      contestEndVotingPasswordModal.classList.remove('hidden');
+      contestEndVotingPasswordInput.focus();
+    };
+    
+    const checkEndVotingPassword = () => {
+      const pass = contestEndVotingPasswordInput.value;
+      if (pass === '1234') {
+        if (window.endVotingPhase) {
+          window.endVotingPhase();
+          contestEndVotingPasswordModal.classList.add('hidden');
+        }
+      } else {
+        showAlert('비밀번호가 틀렸습니다.');
+      }
+    };
+    
+    
+    // '대전 상태' UI 업데이트 함수 (수정됨)
+    const handleTopicSet = (topic, status) => {
+      // 8. '대전 상태' 4단계로 확장
+      window.currentContestStatus = status || 'results'; // (DB에 status 없으면 기본값)
+      
+      // 모든 버튼 초기 숨김
+      startContestBtn.classList.add('hidden');
+      showUploadModalBtn.classList.add('hidden');
+      endContestBtn.classList.add('hidden');
+      startVotingBtn.classList.add('hidden');
+      endVotingBtn.classList.add('hidden'); // '투표 종료' 버튼
+      
       if (topic) {
         window.currentContestTopic = topic;
         contestTopicText.textContent = topic;
         contestTopicDisplay.classList.remove('hidden');
-        showUploadModalBtn.classList.remove('hidden'); // 업로드 버튼 보이기
-        startContestBtn.classList.add('hidden'); // 시작 버튼 숨기기
       } else {
-        // 제시어가 없는 상태
         window.currentContestTopic = null;
         contestTopicDisplay.classList.add('hidden');
-        showUploadModalBtn.classList.add('hidden');
-        startContestBtn.classList.remove('hidden');
+      }
+
+      // 9. 4단계 상태에 따라 버튼 표시
+      switch (window.currentContestStatus) {
+        case 'uploading':
+          // 업로드 중: '올리기' + '올리기 종료' 버튼 표시
+          showUploadModalBtn.classList.remove('hidden');
+          endContestBtn.classList.remove('hidden');
+          break;
+        case 'upload_ended':
+          // 업로드 종료: '투표 시작' 버튼 표시
+          startVotingBtn.classList.remove('hidden');
+          break;
+        case 'voting':
+          // 투표 중: '투표 종료' 버튼 표시
+          endVotingBtn.classList.remove('hidden');
+          break;
+        case 'results':
+          // 결과 발표: 모든 관리 버튼 숨김
+          // (만약 다시 시작하게 하려면 '대전 시작' 버튼을 표시)
+          if (!topic) { // 토픽이 아예 없으면 (최초 상태)
+             startContestBtn.classList.remove('hidden');
+          }
+          break;
+        default:
+          // (상태가 없거나 알 수 없음): '대전 시작' 버튼 표시
+          startContestBtn.classList.remove('hidden');
+      }
+      
+      // '대전 상태'가 변경되었으므로 갤러리 새로고침
+      if(typeof renderComics === 'function') {
+        renderComics();
       }
     };
 
@@ -534,55 +775,124 @@
       });
       comicFilesInput.addEventListener('change', handleFilePreview);
       
-      // 18. 대전 시작 이벤트 리스너
+      // '대전 시작' 이벤트
       startContestBtn.addEventListener('click', showPasswordModal);
       cancelPasswordBtn.addEventListener('click', () => contestPasswordModal.classList.add('hidden'));
       submitPasswordBtn.addEventListener('click', checkContestPassword);
-      
       cancelTopicBtn.addEventListener('click', () => contestTopicModal.classList.add('hidden'));
       submitTopicBtn.addEventListener('click', setContestTopic);
+      contestPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') submitPasswordBtn.click(); });
+      contestTopicInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') submitTopicBtn.click(); });
       
-      // Enter 키로 제출
-      contestPasswordInput.addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') submitPasswordBtn.click();
-      });
-      contestTopicInput.addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') submitTopicBtn.click();
-      });
+      // '올리기 종료' 이벤트
+      endContestBtn.addEventListener('click', showEndPasswordModal);
+      cancelEndPasswordBtn.addEventListener('click', () => contestEndPasswordModal.classList.add('hidden'));
+      submitEndPasswordBtn.addEventListener('click', checkEndContestPassword);
+      contestEndPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') submitEndPasswordBtn.click(); });
+      
+      // '투표 시작' 이벤트
+      startVotingBtn.addEventListener('click', showStartVotingPasswordModal);
+      cancelStartVotingPasswordBtn.addEventListener('click', () => contestStartVotingPasswordModal.classList.add('hidden'));
+      submitStartVotingPasswordBtn.addEventListener('click', checkStartVotingPassword);
+      contestStartVotingPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') submitStartVotingPasswordBtn.click(); });
+      
+      // '관리자 미리보기' 이벤트
+      cancelAdminPreviewBtn.addEventListener('click', () => contestAdminPreviewModal.classList.add('hidden'));
+      submitAdminPreviewBtn.addEventListener('click', checkAdminPreviewPassword);
+      contestAdminPreviewInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') submitAdminPreviewBtn.click(); });
+      
+      // 10. '투표 종료' 이벤트
+      endVotingBtn.addEventListener('click', showEndVotingPasswordModal);
+      cancelEndVotingPasswordBtn.addEventListener('click', () => contestEndVotingPasswordModal.classList.add('hidden'));
+      submitEndVotingPasswordBtn.addEventListener('click', checkEndVotingPassword);
+      contestEndVotingPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') submitEndVotingPasswordBtn.click(); });
     };
 
-    // 네컷만화 갤러리 렌더링
+    // 네컷만화 갤러리 렌더링 (대폭 수정됨)
     const renderComics = () => {
       if (!comicGrid) return;
       comicGrid.innerHTML = '';
       
-      const sortedComics = [...(window.comics || [])];
+      // 11. 현재 대전 상태 확인
+      const status = window.currentContestStatus;
+      const isUploading = (status === 'uploading' || status === 'upload_ended');
+      const isVoting = (status === 'voting');
+      const isResults = (status === 'results');
+
+      let sortedComics = [...(window.comics || [])];
+      
+      // 12. '결과' 상태일 때만 '따봉' 순으로 정렬
+      if (isResults) {
+        sortedComics.sort((a, b) => {
+          const likesA = Object.keys(a.likes || {}).length;
+          const likesB = Object.keys(b.likes || {}).length;
+          return likesB - likesA; // '따봉' 많은 순
+        });
+      }
+      // (그 외에는 DB에서 가져온 기본 순서 = 최신순)
+
+      // 13. 등수 계산 (결과 상태일 때만)
+      let ranks = {}; // { comicId: 1, comicId_B: 2, ... }
+      if (isResults) {
+        let currentRank = 0;
+        let lastLikeCount = -1;
+        let tiedCount = 1;
+        
+        sortedComics.forEach((comic, index) => {
+          const likeCount = Object.keys(comic.likes || {}).length;
+          
+          if (likeCount !== lastLikeCount) {
+            currentRank += tiedCount;
+            tiedCount = 1;
+            lastLikeCount = likeCount;
+          } else {
+            tiedCount++;
+          }
+          
+          if (currentRank <= 3 && likeCount > 0) {
+            ranks[comic.id] = currentRank;
+          }
+        });
+      }
 
       sortedComics.forEach(d => {
         const uploaderName = d.uploaderName || '익명';
         const likeMap = d.likes || {};
         const likeCount = Object.keys(likeMap).length;
         const imageCount = d.images?.length || 0;
-        const contestTopic = d.contestTopic || null; // 19. 제시어 데이터
         
         const currentUserId = window.auth?.currentUser?.uid;
         const userHasLiked = currentUserId && likeMap[currentUserId] === true;
+        
+        // 14. 등수 확인
+        const rank = ranks[d.id] || 0;
+        let rankClass = '';
+        let rankMedal = '';
+        if (rank === 1) { rankClass = 'rank-1'; rankMedal = '🥇'; }
+        else if (rank === 2) { rankClass = 'rank-2'; rankMedal = '🥈'; }
+        else if (rank === 3) { rankClass = 'rank-3'; rankMedal = '🥉'; }
+
+        // 15. 비활성화 상태 결정
+        // '업로드 중/종료' 상태면 비활성화, '투표 중'/'결과' 상태면 활성화
+        const isDisabled = isUploading;
+        // '따봉' 버튼 비활성화 (업로드 중이거나, 결과 발표가 났거나)
+        const isLikeDisabled = isUploading || isResults;
 
         const card = document.createElement('div');
-        card.className = 'comic-card relative group';
+        card.className = `comic-card relative group ${isDisabled ? 'disabled' : ''} ${rankClass}`;
         card.dataset.id = d.id;
         
         card.innerHTML = `
+          ${rankMedal ? `<div class="rank-medal">${rankMedal}</div>` : ''}
           <div class="content" data-action="view">
             <span class="nickname-display">${uploaderName}</span>
             <span class="sub-text">${imageCount}컷 만화</span>
-            
-            <!-- 20. 갤러리 카드에 제시어 표시 -->
-            ${contestTopic ? `<span class="topic-display">제시어: ${contestTopic}</span>` : ''}
+            <!-- 카드에서 제시어 제거됨 -->
           </div>
           <div class="info-footer">
             <div class="like-section">
-              <button class="like-btn ${userHasLiked ? 'liked' : ''}" data-id="${d.id}" data-action="like">
+              <!-- 16. '결과' 상태일 때도 '따봉' 비활성화 -->
+              <button class="like-btn ${userHasLiked ? 'liked' : ''} ${isLikeDisabled ? 'disabled' : ''}" data-id="${d.id}" data-action="like">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 11-3 0v-6zM6 10.333v5.167c0 .83.682 1.5 1.502 1.5h6.666A1.5 1.5 0 0015.5 15.5V8.167A1.5 1.5 0 0014 6.667h-2.167A2.5 2.5 0 009.5 4.5V3.083A1.5 1.5 0 008 1.583 1.5 1.5 0 006.5 3v7.333z" />
                 </svg>
@@ -592,7 +902,8 @@
             </div>
           </div>
           
-          ${currentUserId === d.uploaderId ? `
+          <!-- 17. '결과' 상태일 때만 삭제 버튼 표시 (관리 용이) -->
+          ${(currentUserId === d.uploaderId && (isResults || isVoting)) ? `
           <button class="absolute top-2 right-2 bg-[#424242] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20" data-id="${d.id}" data-action="delete">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
@@ -606,6 +917,21 @@
           e.stopPropagation(); 
           const id = e.currentTarget.dataset.id;
           const action = e.currentTarget.dataset.action;
+          
+          // 18. '따봉' 비활성화 로직
+          if (action === 'like' && (isUploading || isResults)) {
+            e.preventDefault();
+            if (isUploading) showAlert('아직은 투표할 수 없습니다. 투표 기간을 기다려주세요!');
+            if (isResults) showAlert('투표가 종료되었습니다.');
+            return;
+          }
+          
+          // 19. 삭제 비활성화 로직
+          if (action === 'delete' && isUploading) {
+             e.preventDefault();
+             showAlert('업로드 기간 중에는 만화를 삭제할 수 없습니다.');
+             return;
+          }
 
           if (action === 'delete') {
             if (window.deleteComic) await window.deleteComic(id);
@@ -618,7 +944,18 @@
       comicGrid.querySelectorAll('.comic-card').forEach(card => {
         card.onclick = (e) => {
           if (e.target.closest('button[data-action]')) return;
+          
           const id = card.dataset.id;
+          
+          // 20. '업로드 중/종료' 상태일 때
+          if (isUploading) {
+            e.stopPropagation();
+            // 관리자 미리보기 비밀번호 묻기
+            showAdminPreviewModal(id);
+            return;
+          }
+          
+          // '투표 중' 또는 '결과' 상태일 때 (정상 열람)
           const comic = window.comics.find(c => c.id === id);
           if (comic) {
             openComicViewerModal(comic);
@@ -653,10 +990,10 @@
       addDoc, updateDoc, serverTimestamp, query, orderBy, 
       limit, deleteField, setDoc, getDoc
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    // import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"; // 오류 수정: 제거됨
 
-    // 디버그 로그 활성화
-    setLogLevel('Debug');
+    // 디버그 로그 비활성화
+    // setLogLevel('Debug'); // 오류 수정: 제거됨
     
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -664,12 +1001,9 @@
     
     window.auth = auth;
 
-    // (기존 로그인 버튼 DOM 제거)
     const loadingOverlay=document.getElementById('loading-overlay');
 
-    // 공용 'comics' 컬렉션 참조 (수정됨)
     const comicsCollectionPath = `artifacts/${appId}/public/data/comics`;
-    // 21. 공용 'config' 컬렉션 참조
     const configCollectionPath = `artifacts/${appId}/public/data/config`;
     
     window.cloudRefs = () => {
@@ -682,9 +1016,8 @@
     window.ensureLogin=()=>{
       if(!window.isAuthReady){ showAlert('데이터 로딩 중입니다.'); return false; }
       if(!auth.currentUser){ showAlert('로그인 후 이용해 주세요.'); return false; }
-      // 22. 익명 사용자는 업로드 못하게 막기
       if(auth.currentUser.isAnonymous) {
-        showAlert('콘텐츠를 업로드하려면 Google 계정으로 로그인해야 합니다.\n(현재 익명으로 로그인됨)');
+        showAlert('콘텐츠를 업로드하거나 관리하려면 Google 계정으로 로그인해야 합니다.\n(현재 익명으로 로그인됨)');
         return false;
       }
       return true;
@@ -714,9 +1047,13 @@
     window.handleSubmitComic = async () => {
       if (!ensureLogin()) return;
       
-      // 23. 현재 설정된 제시어가 있는지 확인
       if (!window.currentContestTopic) {
         showAlert('현재 설정된 제시어가 없습니다. 대전을 먼저 시작해주세요.');
+        return;
+      }
+      
+      if (window.currentContestStatus !== 'uploading') {
+        showAlert('지금은 업로드 기간이 아닙니다.');
         return;
       }
 
@@ -751,7 +1088,7 @@
           uploaderDisplayName: auth.currentUser.displayName || '익명',
           timestamp: serverTimestamp(),
           likes: {},
-          contestTopic: window.currentContestTopic // 24. 제시어 저장
+          contestTopic: window.currentContestTopic
         });
 
         loadingOverlay.classList.add('hidden');
@@ -766,7 +1103,13 @@
     
     // 네컷만화 삭제
     window.deleteComic = async (id)=>{
-      if(!ensureLogin()) return; // 익명 사용자는 삭제 불가
+      if(!ensureLogin()) return;
+      
+      if (window.currentContestStatus === 'uploading' || window.currentContestStatus === 'upload_ended') {
+         showAlert('업로드 기간 중에는 만화를 삭제할 수 없습니다.');
+         return;
+      }
+      
       try{
         const comic = (window.comics||[]).find(d=>d.id===id); 
         if(!comic) throw new Error('만화 항목을 찾을 수 없습니다.');
@@ -800,10 +1143,17 @@
 
     // '따봉' (좋아요) 토글 기능
     window.toggleLike = async (id) => {
-      // 25. 좋아요는 익명 사용자도 가능하도록 수정
       if(!window.isAuthReady){ showAlert('데이터 로딩 중입니다.'); return false; }
       if(!auth.currentUser){ showAlert('로그인 후 이용해 주세요.'); return false; }
-      // if (!ensureLogin()) return; // -> 로그인만 하면 누구나 가능하게
+      
+      if (window.currentContestStatus !== 'voting') {
+         if (window.currentContestStatus === 'results') {
+           showAlert('투표가 종료되었습니다.');
+         } else {
+           showAlert('아직은 투표할 수 없습니다. 투표 기간을 기다려주세요!');
+         }
+         return;
+      }
 
       const userId = auth.currentUser.uid;
       const comicRef = doc(db, comicsCollectionPath, id);
@@ -825,14 +1175,15 @@
       }
     };
     
-    // 26. 제시어 DB 저장 함수
+    // '제시어' DB 저장 함수
     window.saveContestTopicToDb = async (topic) => {
-      if (!ensureLogin()) return; // 관리자(익명 아닌 유저)만 설정 가능
+      if (!ensureLogin()) return;
       
       const { configDoc } = cloudRefs();
       try {
         await setDoc(configDoc, {
           name: topic,
+          status: "uploading", // 상태: '업로드 중'
           setBy: auth.currentUser.displayName || auth.currentUser.uid,
           updatedAt: serverTimestamp()
         });
@@ -840,6 +1191,57 @@
       } catch (e) {
         console.error("제시어 저장 오류:", e);
         showAlert("제시어를 설정하는 중 오류가 발생했습니다.");
+      }
+    };
+    
+    // '업로드 종료' DB 업데이트 함수
+    window.endContestUploadingPhase = async () => {
+      if (!ensureLogin()) return; 
+      const { configDoc } = cloudRefs();
+      try {
+        await setDoc(configDoc, {
+          status: "upload_ended", // 상태: '업로드 종료'
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        
+        showFeedbackMessage('업로드 단계가 종료되었습니다.');
+      } catch (e) {
+        console.error("대전 상태 업데이트 오류:", e);
+        showAlert("대전 상태를 업데이트하는 중 오류가 발생했습니다.");
+      }
+    };
+    
+    // '투표 시작' DB 업데이트 함수
+    window.startVotingPhase = async () => {
+      if (!ensureLogin()) return; 
+      const { configDoc } = cloudRefs();
+      try {
+        await setDoc(configDoc, {
+          status: "voting", // 상태: '투표 중'
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        
+        showFeedbackMessage('투표가 시작되었습니다!');
+      } catch (e) {
+        console.error("대전 상태 업데이트 오류:", e);
+        showAlert("대전 상태를 업데이트하는 중 오류가 발생했습니다.");
+      }
+    };
+    
+    // 21. '투표 종료' DB 업데이트 함수
+    window.endVotingPhase = async () => {
+      if (!ensureLogin()) return; 
+      const { configDoc } = cloudRefs();
+      try {
+        await setDoc(configDoc, {
+          status: "results", // 상태: '결과'
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        
+        showFeedbackMessage('투표가 종료되었습니다. 결과를 집계합니다!');
+      } catch (e) {
+        console.error("대전 상태 업데이트 오류:", e);
+        showAlert("대전 상태를 업데이트하는 중 오류가 발생했습니다.");
       }
     };
 
@@ -862,18 +1264,20 @@
             showAlert("데이터를 읽을 수 없습니다. Firestore 보안 규칙을 확인하세요. ('comics' 컬렉션에 대한 'read: true' 설정 필요)");
           }
       });
-      // [오류 수정] 'unComics' (오타) -> 'unsubComics'
       window.__unsubs.push(unsubComics);
 
-      // 2. 27. 현재 제시어 구독
+      // 2. 현재 '대전 상태' 및 '제시어' 구독
       const unsubConfig = onSnapshot(configDoc, (docSnap) => {
         let currentTopic = null;
+        let currentStatus = 'results'; // 기본값: 결과 (제시어 없으면)
+        
         if (docSnap.exists()) {
           currentTopic = docSnap.data().name;
+          currentStatus = docSnap.data().status || 'uploading'; // (하위 호환성)
         }
-        // UI 업데이트 함수 호출 (UI 스크립트에 정의됨)
+        // UI 업데이트 함수 호출
         if (typeof handleTopicSet === 'function') {
-          handleTopicSet(currentTopic);
+          handleTopicSet(currentTopic, currentStatus);
         } else {
           console.warn('handleTopicSet 함수를 찾을 수 없습니다.');
         }
@@ -892,34 +1296,26 @@
       const currentUserId = user ? user.uid : null;
       
       if(user){
-        // 28. 로그인 상태 (익명/구글)
-        // (UI 표시는 숨겨졌으므로 제거)
         await setupRealtimeSync(currentUserId);
       } else {
-        // 29. 로그아웃 상태 (최초 진입 등)
-        // (UI 표시는 숨겨졌으므로 제거)
-        
-        // 로그아웃 시에도 갤러리는 계속 볼 수 있도록 익명 로그인을 시도
         try {
           if (initialAuthToken) {
             await signInWithCustomToken(auth, initialAuthToken);
           } else {
             await signInAnonymously(auth);
           }
-          // (성공하면 onAuthStateChanged가 다시 호출됨)
         } catch (error) {
           console.error("익명 로그인 실패:", error);
           loadingOverlay.classList.add('hidden');
           window.isAuthReady = true;
           showAlert("데이터베이스 연결에 실패했습니다. 페이지를 새로고침해주세요.");
         }
-        return; // onAuthStateChanged 재실행을 기다림
+        return;
       }
       
       loadingOverlay.classList.add('hidden'); 
       window.isAuthReady=true;
       
-      // 30. (로그인 상태가 변경될 때마다 렌더링 다시 - 삭제 버튼/좋아요 표시 때문)
       if(typeof renderComics==='function') renderComics();
     });
   </script>
