@@ -71,6 +71,8 @@
     #startVotingBtn:hover { background: #065F46; } /* 채도 낮춤 */
     #endVotingBtn { background: #B91C1C; } /* 채도 낮춤 */
     #endVotingBtn:hover { background: #991B1B; } /* 채도 낮춤 */
+    #resetContestBtn { background: #B91C1C; } /* 초기화 버튼 (빨간색) */
+    #resetContestBtn:hover { background: #991B1B; }
     .password-modal { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; justify-content: center; align-items: center; z-index: 1001; }
     .password-modal .modal-content { background: #222; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.5); width: 90%; max-width: 400px; } /* 채도 낮춤 */
     .password-modal h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; }
@@ -113,6 +115,7 @@
       <button id="endContestBtn" class="admin-button hidden">올리기 종료</button>
       <button id="startVotingBtn" class="admin-button hidden">투표 시작하기</button>
       <button id="endVotingBtn" class="admin-button hidden">투표 종료 (결과 발표)</button>
+      <button id="resetContestBtn" class="admin-button hidden">대전 초기화하기</button>
     </section>
     <section id="comic-grid"></section>
   </div>
@@ -223,6 +226,19 @@
     </div>
   </div>
 
+  <div id="resetContestPasswordModal" class="password-modal">
+    <div class="modal-content">
+      <h2>대전 초기화</h2>
+      <label for="resetContestPasswordInput" class="block text-sm font-medium text-gray-300 mb-1">관리자 비밀번호</label>
+      <input type="password" id="resetContestPasswordInput" placeholder="비밀번호 1234">
+      <p id="resetContestPasswordError"></p>
+      <div class="flex justify-end gap-2 mt-4">
+        <button id="cancelResetContestPassword" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">취소</button>
+        <button id="submitResetContestPassword" class="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg">초기화</button>
+      </div>
+    </div>
+  </div>
+
   <div id="adminPreviewPasswordModal" class="password-modal">
     <div class="modal-content">
       <h2>관리자 미리보기</h2>
@@ -311,6 +327,7 @@
     const endContestBtn = document.getElementById('endContestBtn');
     const startVotingBtn = document.getElementById('startVotingBtn');
     const endVotingBtn = document.getElementById('endVotingBtn');
+    const resetContestBtn = document.getElementById('resetContestBtn');
 
     const currentTopicDisplay = document.getElementById('currentTopicDisplay');
     const currentTopicText = document.getElementById('currentTopicText');
@@ -356,6 +373,12 @@
     const contestEndVotingPasswordError = document.getElementById('contestEndVotingPasswordError');
     const cancelContestEndVotingPassword = document.getElementById('cancelContestEndVotingPassword');
     const submitContestEndVotingPassword = document.getElementById('submitContestEndVotingPassword');
+
+    const resetContestPasswordModal = document.getElementById('resetContestPasswordModal');
+    const resetContestPasswordInput = document.getElementById('resetContestPasswordInput');
+    const resetContestPasswordError = document.getElementById('resetContestPasswordError');
+    const cancelResetContestPassword = document.getElementById('cancelResetContestPassword');
+    const submitResetContestPassword = document.getElementById('submitResetContestPassword');
 
     const adminPreviewPasswordModal = document.getElementById('adminPreviewPasswordModal');
     const adminPreviewPasswordInput = document.getElementById('adminPreviewPasswordInput');
@@ -449,8 +472,9 @@
       contestStartVotingPasswordModal.style.display = 'none';
       contestEndVotingPasswordModal.style.display = 'none';
       adminPreviewPasswordModal.style.display = 'none';
-      [contestPasswordInput, topicInput, contestEndPasswordInput, contestStartVotingPasswordInput, contestEndVotingPasswordInput, adminPreviewPasswordInput].forEach(input => input.value = '');
-      [contestPasswordError, topicError, contestEndPasswordError, contestStartVotingPasswordError, contestEndVotingPasswordError, adminPreviewPasswordError].forEach(err => err.textContent = '');
+      resetContestPasswordModal.style.display = 'none';
+      [contestPasswordInput, topicInput, contestEndPasswordInput, contestStartVotingPasswordInput, contestEndVotingPasswordInput, adminPreviewPasswordInput, resetContestPasswordInput].forEach(input => input.value = '');
+      [contestPasswordError, topicError, contestEndPasswordError, contestStartVotingPasswordError, contestEndVotingPasswordError, adminPreviewPasswordError, resetContestPasswordError].forEach(err => err.textContent = '');
     };
 
     const attachEventListeners=()=>{
@@ -537,6 +561,22 @@
         }
       });
 
+      resetContestBtn.addEventListener('click', () => {
+        if (!window.ensureLogin || !window.ensureLogin(true)) return;
+        closeAllPasswordModals();
+        resetContestPasswordModal.style.display = 'flex';
+        resetContestPasswordInput.focus();
+      });
+      cancelResetContestPassword.addEventListener('click', closeAllPasswordModals);
+      submitResetContestPassword.addEventListener('click', () => {
+        if (resetContestPasswordInput.value === ADMIN_PASSWORD) {
+          if (window.resetContest) window.resetContest();
+          closeAllPasswordModals();
+        } else {
+          resetContestPasswordError.textContent = '비밀번호가 틀렸습니다.';
+        }
+      });
+
       cancelAdminPreviewPassword.addEventListener('click', closeAllPasswordModals);
       submitAdminPreviewPassword.addEventListener('click', () => {
         if (adminPreviewPasswordInput.value === ADMIN_PASSWORD) {
@@ -573,6 +613,7 @@
       endContestBtn.classList.add('hidden');
       startVotingBtn.classList.add('hidden');
       endVotingBtn.classList.add('hidden');
+      resetContestBtn.classList.add('hidden');
 
       if (isManager) {
         if (!status) {
@@ -584,6 +625,8 @@
           startVotingBtn.classList.remove('hidden');
         } else if (status === 'voting') {
           endVotingBtn.classList.remove('hidden');
+        } else if (status === 'results') {
+          resetContestBtn.classList.remove('hidden');
         }
       }
 
@@ -859,6 +902,55 @@
     window.startVotingPhase = async () => { await updateContestConfig(window.currentTopic, 'voting'); showFeedbackMessage('투표가 시작되었습니다!'); };
     window.endVotingPhase = async () => { await updateContestConfig(window.currentTopic, 'results'); showFeedbackMessage('투표가 종료되었습니다! 결과를 발표합니다.'); };
 
+    window.resetContest = async () => {
+      if (!ensureLogin(true)) return;
+
+      const confirmed = await showConfirm('정말로 대전을 초기화하시겠습니까? 모든 만화와 좋아요 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.');
+      if (!confirmed) return;
+
+      loadingOverlay.classList.remove('hidden');
+      showFeedbackMessage('대전 초기화 중... 모든 데이터를 삭제합니다.');
+
+      try {
+        const refs = cloudRefs();
+        if (!refs) return;
+
+        // 1. Delete all comic documents
+        const deletePromises = [];
+        const comicsToDelete = [...window.comics]; // Copy the array
+        
+        comicsToDelete.forEach(comic => {
+          // Add ImgBB delete promises (best effort, don't block reset)
+          if (comic.images && Array.isArray(comic.images)) {
+            comic.images.forEach(img => {
+              if (img.deleteUrl) {
+                deletePromises.push(fetch(img.deleteUrl, { method: 'GET' }).catch(e => console.warn("ImgBB 삭제 실패 (무시):", e)));
+              }
+            });
+          }
+          // Add Firestore document delete promise
+          deletePromises.push(deleteDoc(doc(refs.comicsCol, comic.id)));
+        });
+
+        await Promise.allSettled(deletePromises);
+        console.log('All comic data deleted.');
+
+        // 2. Reset the config document
+        await setDoc(refs.configDoc, {
+          topic: "",
+          status: "",
+          updatedAt: serverTimestamp()
+        });
+        
+        loadingOverlay.classList.add('hidden');
+        showFeedbackMessage('대전이 성공적으로 초기화되었습니다.');
+
+      } catch (e) {
+        loadingOverlay.classList.add('hidden');
+        showAlert('초기화 중 오류 발생: ' + e.message);
+      }
+    };
+
     window.__unsubs=[];
     async function setupRealtimeSync(){
       const refs = cloudRefs();
@@ -938,3 +1030,4 @@
   </script>
 </body>
 </html>
+
