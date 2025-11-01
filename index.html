@@ -20,7 +20,7 @@
       gap: 1rem;
     }
     .section-card {
-      background: #2a2a2a;
+      background: #222; /* 채도 낮춤 (기존 #2a2a2a) */
       border-radius: 12px;
       padding: 20px;
       box-shadow: inset 0 0 10px rgba(0,0,0,.3);
@@ -45,7 +45,7 @@
     .comic-card .info-footer { padding: 12px; background: #333; text-align: left; }
     .comic-card .like-section { display: flex; justify-content: space-between; align-items: center; }
     .like-btn { display: flex; align-items: center; gap: 6px; background: #555; color: white; padding: 6px 10px; border-radius: 20px; font-size: 0.9rem; font-weight: 700; transition: all 0.2s ease; cursor: pointer; border: none; }
-    .like-btn.liked { background: #2563eb; color: white; }
+    .like-btn.liked { background: #1E40AF; color: white; } /* 채도 낮춤 (기존 #2563eb) */
     .like-btn:not(.disabled):hover:not(.liked) { background: #666; }
     .like-btn.disabled { background: #444; color: #777; cursor: not-allowed; }
     .like-count { font-size: 0.9rem; font-weight: 700; color: #ddd; }
@@ -57,25 +57,25 @@
     #modalImageContainer img { width: 100%; height: auto; display: block; border-radius: 8px; }
     #modalImage { display: none; }
     #uploadModal { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; justify-content: center; align-items: center; z-index: 1000; }
-    #uploadModal .modal-content { background: #2a2a2a; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.5); width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+    #uploadModal .modal-content { background: #222; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.5); width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; } /* 채도 낮춤 */
     #imagePreviewArea { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 1rem; padding: 10px; background: #1a1a1a; border-radius: 8px; min-height: 100px; }
     .preview-image { width: 100%; height: auto; object-fit: cover; border-radius: 4px; aspect-ratio: 1 / 1; }
     .file-input-label { background: #444; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; text-align: center; font-weight: 700; transition: background .2s; }
     .file-input-label:hover { background: #555; }
     #comicFilesInput { display: none; }
-    .admin-button { background: #8B5CF6; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; text-align: center; font-weight: 700; transition: background .2s; }
-    .admin-button:hover { background: #7C3AED; }
-    #endContestBtn { background: #EC4899; }
-    #endContestBtn:hover { background: #DB2777; }
-    #startVotingBtn { background: #10B981; }
-    #startVotingBtn:hover { background: #059669; }
-    #endVotingBtn { background: #EF4444; }
-    #endVotingBtn:hover { background: #DC2626; }
+    .admin-button { background: #6D28D9; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; text-align: center; font-weight: 700; transition: background .2s; } /* 채도 낮춤 */
+    .admin-button:hover { background: #5B21B6; } /* 채도 낮춤 */
+    #endContestBtn { background: #BE185D; } /* 채도 낮춤 */
+    #endContestBtn:hover { background: #9D174D; } /* 채도 낮춤 */
+    #startVotingBtn { background: #047857; } /* 채도 낮춤 */
+    #startVotingBtn:hover { background: #065F46; } /* 채도 낮춤 */
+    #endVotingBtn { background: #B91C1C; } /* 채도 낮춤 */
+    #endVotingBtn:hover { background: #991B1B; } /* 채도 낮춤 */
     .password-modal { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; justify-content: center; align-items: center; z-index: 1001; }
-    .password-modal .modal-content { background: #2a2a2a; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.5); width: 90%; max-width: 400px; }
+    .password-modal .modal-content { background: #222; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.5); width: 90%; max-width: 400px; } /* 채도 낮춤 */
     .password-modal h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; }
     .password-modal input[type="text"], .password-modal input[type="password"] { width: 100%; padding: 10px; border-radius: 8px; background: #1a1a1a; border: 1px solid #444; color: white; font-size: 1rem; }
-    .password-modal p { color: #F87171; font-size: 0.8rem; height: 1.2rem; margin-top: 0.25rem; }
+    .password-modal p { color: #DC2626; font-size: 0.8rem; height: 1.2rem; margin-top: 0.25rem; } /* 채도 낮춤 */
     @media (max-width:768px){
       body{padding:12px;gap:0.5rem}.section-card{padding:12px;border-radius:0}
       #uploadModal .modal-content { width: 95%; padding: 16px; }
@@ -88,24 +88,28 @@
 
   <div id="authBar" class="w-full max-w-5xl mx-auto flex items-center justify-end gap-2 mb-2">
     <span id="userInfo" class="text-sm opacity-80"></span>
-    <button id="signInBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">Google 로그인</button>
+    <!-- 색상 채도 낮춤 -->
+    <button id="signInBtn" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1 rounded">Google 로그인</button>
     <button id="signOutBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded hidden">로그아웃</button>
   </div>
 
   <h1 class="text-3xl font-bold text-center text-white">
-    <span class="text-blue-400">제2회 네컷만화</span>
+    <!-- 색상 채도 낮춤 -->
+    <span class="text-blue-500">제2회 네컷만화</span>
     <span class="text-white">대전</span>
-    <span class="text-red-400">!</span>
+    <span class="text-red-500">!</span>
   </h1>
   
-  <h2 id="currentTopicDisplay" class="text-xl font-bold text-yellow-300 text-center mb-4 hidden">
+  <!-- 색상 채도 낮춤 -->
+  <h2 id="currentTopicDisplay" class="text-xl font-bold text-yellow-400 text-center mb-4 hidden">
     주제: <span id="currentTopicText"></span>
   </h2>
 
   <div id="comics-section" class="section-card text-left">
     <section class="text-center mb-6 flex flex-wrap justify-center gap-4">
       <button id="startContestBtn" class="admin-button">대전 시작하기</button>
-      <button id="showUploadModalBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg shadow-lg transition duration-200 ease-in-out transform hover:scale-105 hidden">+ 네컷만화 올리기</button>
+      <!-- 색상 채도 낮춤 -->
+      <button id="showUploadModalBtn" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg text-lg shadow-lg transition duration-200 ease-in-out transform hover:scale-105 hidden">+ 네컷만화 올리기</button>
       <button id="endContestBtn" class="admin-button hidden">올리기 종료</button>
       <button id="startVotingBtn" class="admin-button hidden">투표 시작하기</button>
       <button id="endVotingBtn" class="admin-button hidden">투표 종료 (결과 발표)</button>
@@ -119,7 +123,8 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
       <h3 id="modalComicNickname" class="text-xl font-bold mb-2 text-white text-center"></h3>
-      <h4 id="modalComicTopic" class="text-lg text-yellow-300 mb-4 text-center"></h4>
+      <!-- 색상 채도 낮춤 -->
+      <h4 id="modalComicTopic" class="text-lg text-yellow-400 mb-4 text-center"></h4>
       <div id="modalImageContainer"></div>
       <img id="modalImage" src="" alt="확대 이미지" class="hidden" />
     </div>
@@ -142,7 +147,8 @@
       </div>
       <div class="flex justify-end gap-2 mt-6">
         <button id="cancelUploadBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">취소</button>
-        <button id="submitComicBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">제출</button>
+        <!-- 색상 채도 낮춤 -->
+        <button id="submitComicBtn" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg">제출</button>
       </div>
     </div>
   </div>
@@ -155,7 +161,8 @@
       <p id="contestPasswordError"></p>
       <div class="flex justify-end gap-2 mt-4">
         <button id="cancelContestPassword" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">취소</button>
-        <button id="submitContestPassword" class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded-lg">다음</button>
+        <!-- 색상 채도 낮춤 -->
+        <button id="submitContestPassword" class="bg-violet-700 hover:bg-violet-800 text-white font-bold py-2 px-4 rounded-lg">다음</button>
       </div>
     </div>
   </div>
@@ -168,7 +175,8 @@
       <p id="topicError"></p>
       <div class="flex justify-end gap-2 mt-4">
         <button id="cancelTopic" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">취소</button>
-        <button id="submitTopic" class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded-lg">대전 시작</button>
+        <!-- 색상 채도 낮춤 -->
+        <button id="submitTopic" class="bg-violet-700 hover:bg-violet-800 text-white font-bold py-2 px-4 rounded-lg">대전 시작</button>
       </div>
     </div>
   </div>
@@ -181,7 +189,8 @@
       <p id="contestEndPasswordError"></p>
       <div class="flex justify-end gap-2 mt-4">
         <button id="cancelContestEndPassword" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">취소</button>
-        <button id="submitContestEndPassword" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg">종료</button>
+        <!-- 색상 채도 낮춤 -->
+        <button id="submitContestEndPassword" class="bg-pink-700 hover:bg-pink-800 text-white font-bold py-2 px-4 rounded-lg">종료</button>
       </div>
     </div>
   </div>
@@ -194,7 +203,8 @@
       <p id="contestStartVotingPasswordError"></p>
       <div class="flex justify-end gap-2 mt-4">
         <button id="cancelContestStartVotingPassword" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">취소</button>
-        <button id="submitContestStartVotingPassword" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg">투표 시작</button>
+        <!-- 색상 채도 낮춤 -->
+        <button id="submitContestStartVotingPassword" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-4 rounded-lg">투표 시작</button>
       </div>
     </div>
   </div>
@@ -207,7 +217,8 @@
       <p id="contestEndVotingPasswordError"></p>
       <div class="flex justify-end gap-2 mt-4">
         <button id="cancelContestEndVotingPassword" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">취소</button>
-        <button id="submitContestEndVotingPassword" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">결과 발표</button>
+        <!-- 색상 채도 낮춤 -->
+        <button id="submitContestEndVotingPassword" class="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg">결과 발표</button>
       </div>
     </div>
   </div>
@@ -220,7 +231,8 @@
       <p id="adminPreviewPasswordError"></p>
       <div class="flex justify-end gap-2 mt-4">
         <button id="cancelAdminPreviewPassword" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">취소</button>
-        <button id="submitAdminPreviewPassword" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">확인</button>
+        <!-- 색상 채도 낮춤 -->
+        <button id="submitAdminPreviewPassword" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg">확인</button>
       </div>
     </div>
   </div>
@@ -273,8 +285,8 @@
     //    Firestore 데이터 경로는 artifacts/{CANVAS_APP_ID_FOR_FIRESTORE}/public/data/...
     const CANVAS_APP_ID_FOR_FIRESTORE = "necut_battle_2025";
 
-    // 3) ImgBB API 키: 실제 키로 교체하세요. (클라이언트에 노출되므로 테스트용 권장)
-    const IMGBB_API_KEY = "REPLACE_WITH_IMGBB_API_KEY";
+    // 3) ImgBB API 키: 사용자가 요청한 키로 교체
+    const IMGBB_API_KEY = "f64175972f4e4178332db9ae8559969b";
 
     // 관리자 비밀번호 (배포 시 변경 권장)
     const ADMIN_PASSWORD = "1234";
