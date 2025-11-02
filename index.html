@@ -300,6 +300,21 @@
     </div>
   </div>
 
+  <!-- (새로 추가된) 개별 만화 삭제용 비밀번호 모달 -->
+  <div id="deleteComicPasswordModal" class="password-modal">
+    <div class="modal-content">
+      <h2>만화 삭제</h2>
+      <input type="password" id="deleteComicPasswordInput" placeholder="비밀번호">
+      <p id="deleteComicPasswordError"></p>
+      <!-- 버튼 중앙 정렬 -->
+      <div class="flex justify-center gap-2 mt-4">
+        <button id="cancelDeleteComicPassword" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">취소</button>
+        <!-- 슬레이트 테마 버튼 -->
+        <button id="submitDeleteComicPassword" class="bg-slate-700 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded-lg">삭제</button>
+      </div>
+    </div>
+  </div>
+
   <div id="adminPreviewPasswordModal" class="password-modal">
     <div class="modal-content">
       <h2>관리자 미리보기</h2>
@@ -374,9 +389,10 @@
     window.currentTopic = "";
     window.currentContestStatus = "";
     window.comicToPreview = null;
+    let comicIdToDelete = null; // <-- (추가) 삭제할 만화 ID 임시 저장
     let uploadedFiles = []; // 드래그 앤 드롭으로 순서를 바꿀 수 있는 파일 배열
     let dragStartIndex = null; // 드래그 시작 인덱스
-
+ 
     // DOM
     const comicGrid = document.getElementById('comic-grid');
     const imageModal = document.getElementById('imageModal');
@@ -448,6 +464,13 @@
     const adminPreviewPasswordError = document.getElementById('adminPreviewPasswordError');
     const cancelAdminPreviewPassword = document.getElementById('cancelAdminPreviewPassword');
     const submitAdminPreviewPassword = document.getElementById('submitAdminPreviewPassword');
+
+    // (추가) 삭제 모달 DOM
+    const deleteComicPasswordModal = document.getElementById('deleteComicPasswordModal');
+    const deleteComicPasswordInput = document.getElementById('deleteComicPasswordInput');
+    const deleteComicPasswordError = document.getElementById('deleteComicPasswordError');
+    const cancelDeleteComicPassword = document.getElementById('cancelDeleteComicPassword');
+    const submitDeleteComicPassword = document.getElementById('submitDeleteComicPassword');
 
     const authBar = document.getElementById('authBar');
     const signInBtn = document.getElementById('signInBtn');
@@ -605,8 +628,9 @@
       contestEndVotingPasswordModal.style.display = 'none';
       adminPreviewPasswordModal.style.display = 'none';
       resetContestPasswordModal.style.display = 'none';
-      [contestPasswordInput, topicInput, contestEndPasswordInput, contestStartVotingPasswordInput, contestEndVotingPasswordInput, adminPreviewPasswordInput, resetContestPasswordInput].forEach(input => input.value = '');
-      [contestPasswordError, topicError, contestEndPasswordError, contestStartVotingPasswordError, contestEndVotingPasswordError, adminPreviewPasswordError, resetContestPasswordError].forEach(err => err.textContent = '');
+      deleteComicPasswordModal.style.display = 'none'; // <-- (추가)
+      [contestPasswordInput, topicInput, contestEndPasswordInput, contestStartVotingPasswordInput, contestEndVotingPasswordInput, adminPreviewPasswordInput, resetContestPasswordInput, deleteComicPasswordInput].forEach(input => input.value = ''); // <-- (수정)
+      [contestPasswordError, topicError, contestEndPasswordError, contestStartVotingPasswordError, contestEndVotingPasswordError, adminPreviewPasswordError, resetContestPasswordError, deleteComicPasswordError].forEach(err => err.textContent = ''); // <-- (수정)
     };
 
     const attachEventListeners=()=>{
@@ -634,91 +658,16 @@
         }
       });
 
-      cancelTopic.addEventListener('click', closeAllPasswordModals);
-      submitTopic.addEventListener('click', () => {
-        const topic = topicInput.value.trim();
-        if (topic) {
-          if (window.setTopicAndStart) window.setTopicAndStart(topic);
+      // (추가) 삭제 모달 리스너
+      cancelDeleteComicPassword.addEventListener('click', closeAllPasswordModals);
+      submitDeleteComicPassword.addEventListener('click', () => {
+        if (deleteComicPasswordInput.value === ADMIN_PASSWORD) { // ADMIN_PASSWORD가 '1234'입니다.
+          const id = comicIdToDelete;
+          comicIdToDelete = null;
           closeAllPasswordModals();
+          if (window.deleteComic) window.deleteComic(id);
         } else {
-          topicError.textContent = '제시어를 입력해주세요.';
-        }
-      });
-
-      endContestBtn.addEventListener('click', () => {
-        if (!window.ensureLogin || !window.ensureLogin(true)) return;
-        closeAllPasswordModals();
-        contestEndPasswordModal.style.display = 'flex';
-        contestEndPasswordInput.focus();
-      });
-      cancelContestEndPassword.addEventListener('click', closeAllPasswordModals);
-      submitContestEndPassword.addEventListener('click', () => {
-        if (contestEndPasswordInput.value === ADMIN_PASSWORD) {
-          if (window.endContestUploadingPhase) window.endContestUploadingPhase();
-          closeAllPasswordModals();
-        } else {
-          contestEndPasswordError.textContent = '비밀번호가 틀렸습니다.';
-        }
-      });
-
-      startVotingBtn.addEventListener('click', () => {
-        if (!window.ensureLogin || !window.ensureLogin(true)) return;
-        closeAllPasswordModals();
-        contestStartVotingPasswordModal.style.display = 'flex';
-        contestStartVotingPasswordInput.focus();
-      });
-      cancelContestStartVotingPassword.addEventListener('click', closeAllPasswordModals);
-      submitContestStartVotingPassword.addEventListener('click', () => {
-        if (contestStartVotingPasswordInput.value === ADMIN_PASSWORD) {
-          if (window.startVotingPhase) window.startVotingPhase();
-          closeAllPasswordModals();
-        } else {
-          contestStartVotingPasswordError.textContent = '비밀번호가 틀렸습니다.';
-        }
-      });
-
-      endVotingBtn.addEventListener('click', () => {
-        if (!window.ensureLogin || !window.ensureLogin(true)) return;
-        closeAllPasswordModals();
-        contestEndVotingPasswordModal.style.display = 'flex';
-        contestEndVotingPasswordInput.focus();
-      });
-      cancelContestEndVotingPassword.addEventListener('click', closeAllPasswordModals);
-      submitContestEndVotingPassword.addEventListener('click', () => {
-        if (contestEndVotingPasswordInput.value === ADMIN_PASSWORD) {
-          if (window.endVotingPhase) window.endVotingPhase();
-          closeAllPasswordModals();
-        } else {
-          contestEndVotingPasswordError.textContent = '비밀번호가 틀렸습니다.';
-        }
-      });
-
-      resetContestBtn.addEventListener('click', () => {
-        if (!window.ensureLogin || !window.ensureLogin(true)) return;
-        closeAllPasswordModals();
-        resetContestPasswordModal.style.display = 'flex';
-        resetContestPasswordInput.focus();
-      });
-      cancelResetContestPassword.addEventListener('click', closeAllPasswordModals);
-      submitResetContestPassword.addEventListener('click', () => {
-        if (resetContestPasswordInput.value === ADMIN_PASSWORD) {
-          if (window.resetContest) window.resetContest();
-          closeAllPasswordModals();
-        } else {
-          resetContestPasswordError.textContent = '비밀번호가 틀렸습니다.';
-        }
-      });
-
-      cancelAdminPreviewPassword.addEventListener('click', closeAllPasswordModals);
-      submitAdminPreviewPassword.addEventListener('click', () => {
-        if (adminPreviewPasswordInput.value === ADMIN_PASSWORD) {
-          closeAllPasswordModals();
-          if (window.comicToPreview) {
-            openComicViewerModal(window.comicToPreview);
-            window.comicToPreview = null;
-          }
-        } else {
-          adminPreviewPasswordError.textContent = '비밀번호가 틀렸습니다.';
+          deleteComicPasswordError.textContent = '비밀번호가 틀렸습니다.';
         }
       });
 
@@ -803,7 +752,7 @@
         const likeCount = Object.keys(likeMap).length;
         const imageCount = d.images?.length || 0;
         const currentUserId = window.auth?.currentUser?.uid;
-        const isManager = window.isAuthReady && window.auth?.currentUser && !window.auth?.currentUser.isAnonymous; // <-- ADD THIS LINE
+        // const isManager = window.isAuthReady && window.auth?.currentUser && !window.auth?.currentUser.isAnonymous; // <-- (삭제) 더 이상 필요 없음
         const userHasLiked = currentUserId && likeMap[currentUserId] === true;
         const status = window.currentContestStatus;
         const likeDisabled = (status === 'uploading' || status === 'upload_ended' || status === 'results');
@@ -830,7 +779,7 @@
               <span class="like-count">${likeCount} 명이 좋아합니다</span>
             </div>
           </div>
-          ${((currentUserId === d.uploaderId || isManager) && window.currentContestStatus !== 'results') ? `
+          ${(window.currentContestStatus !== 'results') ? `
           <button class="absolute top-2 right-2 bg-gray-700 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20" data-id="${d.id}" data-action="delete">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
@@ -845,7 +794,11 @@
           const id = e.currentTarget.dataset.id;
           const action = e.currentTarget.dataset.action;
           if (action === 'delete') {
-            if (window.deleteComic) await window.deleteComic(id);
+            // (수정) 바로 삭제하지 않고, 비밀번호 모달 열기
+            comicIdToDelete = id;
+            closeAllPasswordModals(); // 다른 모달 닫기
+            deleteComicPasswordModal.style.display = 'flex';
+            deleteComicPasswordInput.focus();
           } else if (action === 'like') {
             if (e.currentTarget.classList.contains('disabled')) {
               const status = window.currentContestStatus;
@@ -981,18 +934,16 @@
     };
 
     window.deleteComic = async (id)=>{
-      if(!ensureLogin(true)) return; // <-- This ensures user is a manager (logged in, not anon)
+      // (수정) 비밀번호 확인은 외부에서 하므로, 로그인 및 확인 절차 제거
+      if (!id) {
+        console.error("Delete failed: No ID provided");
+        return;
+      }
       try{
         const comic = (window.comics||[]).find(d=>d.id===id);
         if(!comic) throw new Error('만화 항목을 찾을 수 없습니다.');
         
-        // (관리자) 기능: 소유권 확인을 수정합니다.
-        const isOwnComic = comic.uploaderId === auth.currentUser.uid;
-        const confirmMsg = isOwnComic 
-          ? '정말로 이 만화를 삭제하시겠습니까?' 
-          : `(관리자) "${comic.uploaderName}"님의 만화를 강제로 삭제하시겠습니까?`;
-
-        if (!(await showConfirm(confirmMsg))) return;
+        // (수정) 비밀번호가 확인의 역할을 대신하므로, 'showConfirm' 제거
         
         const refs = cloudRefs();
         if (!refs) return;
@@ -1185,4 +1136,5 @@
   </script>
 </body>
 </html>
+
 
