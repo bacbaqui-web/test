@@ -803,6 +803,7 @@
         const likeCount = Object.keys(likeMap).length;
         const imageCount = d.images?.length || 0;
         const currentUserId = window.auth?.currentUser?.uid;
+        const isManager = window.isAuthReady && window.auth?.currentUser && !window.auth?.currentUser.isAnonymous; // <-- ADD THIS LINE
         const userHasLiked = currentUserId && likeMap[currentUserId] === true;
         const status = window.currentContestStatus;
         const likeDisabled = (status === 'uploading' || status === 'upload_ended' || status === 'results');
@@ -829,7 +830,7 @@
               <span class="like-count">${likeCount} 명이 좋아합니다</span>
             </div>
           </div>
-          ${(currentUserId === d.uploaderId && window.currentContestStatus !== 'results') ? `
+          ${((currentUserId === d.uploaderId || isManager) && window.currentContestStatus !== 'results') ? `
           <button class="absolute top-2 right-2 bg-gray-700 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20" data-id="${d.id}" data-action="delete">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
@@ -980,12 +981,19 @@
     };
 
     window.deleteComic = async (id)=>{
-      if(!ensureLogin(true)) return;
+      if(!ensureLogin(true)) return; // <-- This ensures user is a manager (logged in, not anon)
       try{
         const comic = (window.comics||[]).find(d=>d.id===id);
         if(!comic) throw new Error('만화 항목을 찾을 수 없습니다.');
-        if(comic.uploaderId !== auth.currentUser.uid) { showAlert('자신이 올린 만화만 삭제할 수 있습니다.'); return; }
-        if (!(await showConfirm('정말로 이 만화를 삭제하시겠습니까?'))) return;
+        
+        // (관리자) 기능: 소유권 확인을 수정합니다.
+        const isOwnComic = comic.uploaderId === auth.currentUser.uid;
+        const confirmMsg = isOwnComic 
+          ? '정말로 이 만화를 삭제하시겠습니까?' 
+          : `(관리자) "${comic.uploaderName}"님의 만화를 강제로 삭제하시겠습니까?`;
+
+        if (!(await showConfirm(confirmMsg))) return;
+        
         const refs = cloudRefs();
         if (!refs) return;
         try {
@@ -1177,5 +1185,4 @@
   </script>
 </body>
 </html>
-
 
