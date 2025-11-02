@@ -794,7 +794,12 @@
           const id = e.currentTarget.dataset.id;
           const action = e.currentTarget.dataset.action;
           if (action === 'delete') {
-            // (수정) 바로 삭제하지 않고, 비밀번호 모달 열기
+            // (수정) 1. Google 로그인 사용자(관리자)인지 먼저 확인합니다.
+            if (!window.ensureLogin || !window.ensureLogin(true)) {
+              // ensureLogin(true) 함수가 "관리자 계정으로 로그인해야..." 알림을 띄웁니다.
+              return;
+            }
+            // 2. 관리자가 맞으면 비밀번호 모달을 엽니다.
             comicIdToDelete = id;
             closeAllPasswordModals(); // 다른 모달 닫기
             deleteComicPasswordModal.style.display = 'flex';
@@ -1136,5 +1141,6 @@
   </script>
 </body>
 </html>
+
 
 
